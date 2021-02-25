@@ -50,29 +50,47 @@ public final class Bootstrap {
     private static final Log log = LogFactory.getLog(Bootstrap.class);
 
     /**
-     * Daemon object used by main.
+     * 启动配置的实例对象的锁
      */
     private static final Object daemonLock = new Object();
+
+    /**
+     * 启动配置的实例对象
+     */
     private static volatile Bootstrap daemon = null;
 
+    /**
+     * catalina-base文件（默认与catalina-home文件为同一个文件）
+     */
     private static final File catalinaBaseFile;
+
+    /**
+     * catalina-home文件夹文件
+     */
     private static final File catalinaHomeFile;
 
+    /**
+     * "${catalina.base}/lib","${catalina.base}/lib/*.jar","${catalina.home}/lib","${catalina.home}/lib/*.jar"
+     * 字符串匹配器
+     */
     private static final Pattern PATH_PATTERN = Pattern.compile("(\"[^\"]*\")|(([^,])*)");
 
     static {
-        // Will always be non-null
+        //获取当前运行的目录 E:\learn\tomcat
         String userDir = System.getProperty("user.dir");
 
-        // Home first
+        // 获取jvm参数catalina.home的路径：catalina-home
         String home = System.getProperty(Constants.CATALINA_HOME_PROP);
         File homeFile = null;
 
         if (home != null) {
+            //实例化一个 catalina-home文件
             File f = new File(home);
             try {
+                //获取去掉相对路径的绝对路径文件  E：\learn\tomcat\catalina-home
                 homeFile = f.getCanonicalFile();
             } catch (IOException ioe) {
+                //获取绝对路径文件
                 homeFile = f.getAbsoluteFile();
             }
         }
@@ -102,13 +120,16 @@ public final class Bootstrap {
             }
         }
 
+        //指定catalina-home文件
         catalinaHomeFile = homeFile;
+        //设置jvm系统参数 -Dcatalina.home=catalina-home文件的绝对路径
         System.setProperty(
                 Constants.CATALINA_HOME_PROP, catalinaHomeFile.getPath());
 
-        // Then base
+        // 获取jvm系统参数 -Dcatalina.base=catalina-home文件的绝对路径
         String base = System.getProperty(Constants.CATALINA_BASE_PROP);
-        if (base == null) {
+        if (base == null) {//基本路径不存在
+            //设置catalina-home 与catalina-home指定同一个文件
             catalinaBaseFile = catalinaHomeFile;
         } else {
             File baseFile = new File(base);
@@ -119,6 +140,8 @@ public final class Bootstrap {
             }
             catalinaBaseFile = baseFile;
         }
+
+        //设置jvm系统参数:-Dcatalina-base=catalina-home文件绝对的路径
         System.setProperty(
                 Constants.CATALINA_BASE_PROP, catalinaBaseFile.getPath());
     }
@@ -127,178 +150,261 @@ public final class Bootstrap {
 
 
     /**
-     * Daemon reference.
+     * Catalina对象 启动对象 设置parentClassLoader为shareLoader
      */
     private Object catalinaDaemon = null;
 
+    /**
+     * 公共的类加载器 URLClassLoader
+     * 加载 "${catalina.base}/lib","${catalina.base}/lib/*.jar","${catalina.home}/lib","${catalina.home}/lib/*.jar"
+     */
     ClassLoader commonLoader = null;
+
+    /**
+     * catalina server类加载器 继承commonLoader
+     */
     ClassLoader catalinaLoader = null;
+
+    /**
+     * 共享的类加载器 继承commonLoader
+     */
     ClassLoader sharedLoader = null;
 
 
     // -------------------------------------------------------- Private Methods
 
 
+    /**
+     * 初始化类加载器
+     */
     private void initClassLoaders() {
         try {
+            //创建公共的类加载器 URLClassLoader
             commonLoader = createClassLoader("common", null);
-            if (commonLoader == null) {
+            if (commonLoader == null) {//公共的classLoader
                 // no config file, default to this loader - we might be in a 'single' env.
                 commonLoader = this.getClass().getClassLoader();
             }
+
+            //创建server类加载器
             catalinaLoader = createClassLoader("server", commonLoader);
+
+            //共享的类加载器
             sharedLoader = createClassLoader("shared", commonLoader);
         } catch (Throwable t) {
+            //处理异常
             handleThrowable(t);
             log.error("Class loader creation threw exception", t);
+            //退出程序
             System.exit(1);
         }
     }
 
 
+    /**
+     * 创建类加载器
+     * @param name 类加载器的名字
+     * @param parent 加药被创建的额类加载器的父类
+     * @return
+     * @throws Exception
+     */
     private ClassLoader createClassLoader(String name, ClassLoader parent)
         throws Exception {
-
+        //从catalina-home/conf/catalina.properties中获取属性值  例如common.loader的属性值
         String value = CatalinaProperties.getProperty(name + ".loader");
+        //属性值不存在 或者为""字符串 直接返回父加载器
         if ((value == null) || (value.equals("")))
             return parent;
 
+        //替换掉属性值字符串中的${}参数值 用系统的jvm参数值来替换
         value = replace(value);
 
+        //实例化一个资源List
         List<Repository> repositories = new ArrayList<>();
 
+        //获取属性值的资源路径数组
         String[] repositoryPaths = getPaths(value);
 
-        for (String repository : repositoryPaths) {
+        for (String repository : repositoryPaths) {//遍历资源路径
             // Check for a JAR URL repository
             try {
+                //实例化一个Url对象
                 @SuppressWarnings("unused")
                 URL url = new URL(repository);
+
+                //实例化一个资源对象 将资源对象添加到资源列表
                 repositories.add(new Repository(repository, RepositoryType.URL));
                 continue;
             } catch (MalformedURLException e) {
                 // Ignore
             }
 
+            //资源不能通过url访问
             // Local repository
-            if (repository.endsWith("*.jar")) {
+            if (repository.endsWith("*.jar")) {//文件夹下所有的.jar文件
+                //文件路径
                 repository = repository.substring
                     (0, repository.length() - "*.jar".length());
                 repositories.add(new Repository(repository, RepositoryType.GLOB));
-            } else if (repository.endsWith(".jar")) {
+            } else if (repository.endsWith(".jar")) {//单个.jar文件
+                //设置.jar文件
                 repositories.add(new Repository(repository, RepositoryType.JAR));
             } else {
+                //文件夹
                 repositories.add(new Repository(repository, RepositoryType.DIR));
             }
         }
 
+        //创建类加载器 URLClassLoader类加载器
         return ClassLoaderFactory.createClassLoader(repositories, parent);
     }
 
 
     /**
-     * System property replacement in the given string.
-     *
-     * @param str The original string
-     * @return the modified string
+     * 替换字符串 例如"${catalina.base}/lib","${catalina.base}/lib/*.jar","${catalina.home}/lib","${catalina.home}/lib/*.jar"
+     * 将${}中的系统参数用参数值来替换 返回新的字符串
+     * @param str 将要被替换的字符串
+     * @return
      */
     protected String replace(String str) {
-        // Implementation is copied from ClassLoaderLogManager.replace(),
-        // but added special processing for catalina.home and catalina.base.
+        //定义结果字符串
         String result = str;
+        //获取第一个${下标
         int pos_start = str.indexOf("${");
-        if (pos_start >= 0) {
+        if (pos_start >= 0) {//${下标存在
+            //实例化一个StringBuilder对象
             StringBuilder builder = new StringBuilder();
+            //}位置
             int pos_end = -1;
-            while (pos_start >= 0) {
+            while (pos_start >= 0) {//从第一个${下标开始往后遍历
+                //拼接 ${之前的字符串
                 builder.append(str, pos_end + 1, pos_start);
+                //获取之后的}位置
                 pos_end = str.indexOf('}', pos_start + 2);
-                if (pos_end < 0) {
+                if (pos_end < 0) {//结束位置不存在 字符串有误
                     pos_end = pos_start - 1;
                     break;
                 }
+
+                //获取将要被替换的属性名  例如catalina.base
                 String propName = str.substring(pos_start + 2, pos_end);
+                //替换属性的属性值
                 String replacement;
-                if (propName.length() == 0) {
+                if (propName.length() == 0) {//属性名为空字符串
+                    //替换的属性值为null
                     replacement = null;
-                } else if (Constants.CATALINA_HOME_PROP.equals(propName)) {
+                } else if (Constants.CATALINA_HOME_PROP.equals(propName)) {//替换的属性名为catalina.home
+                    //设置替换的属性值为 e:\learn\tomcat\catalina-home
                     replacement = getCatalinaHome();
-                } else if (Constants.CATALINA_BASE_PROP.equals(propName)) {
+                } else if (Constants.CATALINA_BASE_PROP.equals(propName)) {//替换的属性名为catalina.base
+                    //设置替换的属性值为 e:\learn\tomacat\catalina-home
                     replacement = getCatalinaBase();
                 } else {
+                    //从jvm系统参数中获取参数值
                     replacement = System.getProperty(propName);
                 }
-                if (replacement != null) {
+                if (replacement != null) {//存在属性值
+                    //拼接属性值
                     builder.append(replacement);
                 } else {
+                    //不存在属性值 继续拼接
                     builder.append(str, pos_start, pos_end + 1);
                 }
+                //设置起始位置
                 pos_start = str.indexOf("${", pos_end + 1);
             }
+
             builder.append(str, pos_end + 1, str.length());
             result = builder.toString();
         }
+
+        //返回替换掉${}中参数之后的新的字符串
         return result;
     }
 
 
     /**
-     * Initialize daemon.
-     * @throws Exception Fatal initialization error
+     * 初始化启动配置
+     * @throws Exception
      */
     public void init() throws Exception {
 
+        //初始哈类加载器 common urlclasssLoader
         initClassLoaders();
 
+        //设置当前线程的class类加载器
         Thread.currentThread().setContextClassLoader(catalinaLoader);
 
         SecurityClassLoad.securityClassLoad(catalinaLoader);
 
         // Load our startup class and call its process() method
-        if (log.isDebugEnabled())
+        if (log.isDebugEnabled())//打印日志
             log.debug("Loading startup class");
+
+        //加载org.apache.catalina.startup.Catalina类到虚拟机
         Class<?> startupClass = catalinaLoader.loadClass("org.apache.catalina.startup.Catalina");
+        //实例化一个启动类对象
         Object startupInstance = startupClass.getConstructor().newInstance();
 
         // Set the shared extensions class loader
         if (log.isDebugEnabled())
             log.debug("Setting startup class properties");
+
+        //setParentClassLoader 方法名
         String methodName = "setParentClassLoader";
+        //实例化一个参数数组
         Class<?> paramTypes[] = new Class[1];
+        //设置参数类型数的第一个元素为classLoader
         paramTypes[0] = Class.forName("java.lang.ClassLoader");
+        //实例化一个参数值数组
         Object paramValues[] = new Object[1];
+        //参数值数组的第一个元素为共享的classLoader
         paramValues[0] = sharedLoader;
+        //获取方法
         Method method =
             startupInstance.getClass().getMethod(methodName, paramTypes);
+        //执行方法 设置父classLoader
         method.invoke(startupInstance, paramValues);
 
+        //设置启动对象
         catalinaDaemon = startupInstance;
     }
 
 
     /**
-     * Load daemon.
+     * 启动配置对象加载启动main方法的参数数组
+     * @param arguments 启动main方法的参数数组
+     * @throws Exception
      */
     private void load(String[] arguments) throws Exception {
 
-        // Call the load() method
+        //方法名
         String methodName = "load";
+        //参数值数组
         Object param[];
+        //参数类型数组
         Class<?> paramTypes[];
-        if (arguments==null || arguments.length==0) {
+        if (arguments==null || arguments.length==0) {//没有闯入参数
             paramTypes = null;
             param = null;
         } else {
+            //实例化参数类型数组
             paramTypes = new Class[1];
+            //设置参数类型数组的第0个元素的类型
             paramTypes[0] = arguments.getClass();
+            //实例化参数值数组
             param = new Object[1];
+            //设置参数值数组的第0个元素的值为传入参数值
             param[0] = arguments;
         }
+        //获取load方法
         Method method =
             catalinaDaemon.getClass().getMethod(methodName, paramTypes);
         if (log.isDebugEnabled()) {
             log.debug("Calling startup class " + method);
         }
+
+        //执行Catalina对象的load方法
         method.invoke(catalinaDaemon, param);
     }
 
@@ -434,17 +540,21 @@ public final class Bootstrap {
      */
     public static void main(String args[]) {
 
-        synchronized (daemonLock) {
-            if (daemon == null) {
-                // Don't set daemon until init() has completed
+        synchronized (daemonLock) {//加锁
+            if (daemon == null) {//启动配置的实例对象为null  没有创建过启动配置的实例对象
+                // 实例化一个启动配置的实例对象
                 Bootstrap bootstrap = new Bootstrap();
                 try {
+                    //初始化启动配置的实例对象
+                    //设置commonLoader sharedLoader CatalianLoader
                     bootstrap.init();
                 } catch (Throwable t) {
                     handleThrowable(t);
                     t.printStackTrace();
                     return;
                 }
+
+                //设置bootsrap启动配置对象
                 daemon = bootstrap;
             } else {
                 // When running as a service the call to stop will be on a new
@@ -455,14 +565,20 @@ public final class Bootstrap {
         }
 
         try {
+
+            //命令为start
             String command = "start";
-            if (args.length > 0) {
+            if (args.length > 0) {//启动参数
                 command = args[args.length - 1];
             }
 
-            if (command.equals("startd")) {
+            if (command.equals("startd")) {//启动
+                //设置最后一个参数为start
                 args[args.length - 1] = "start";
+                //加载参数
                 daemon.load(args);
+
+                //启动配置
                 daemon.start();
             } else if (command.equals("stopd")) {
                 args[args.length - 1] = "stop";
@@ -563,30 +679,43 @@ public final class Bootstrap {
         return t;
     }
 
-    // Protected for unit testing
+    /**
+     * 获取字符串资源的路径 比如："E:/learn/tomcat/catalina-home/lib","E:/learn/tomcat/catalina-home/lib/*.jar","E:/learn/tomcat/catalina-home/lib","E:/learn/tomcat/catalina-home/lib/*.jar"
+     * @param value 返回字符串中路径集合
+     * @return
+     */
     protected static String[] getPaths(String value) {
 
+        //实例化一个结果数组
         List<String> result = new ArrayList<>();
+
+        //获取字符串的配置器
         Matcher matcher = PATH_PATTERN.matcher(value);
 
-        while (matcher.find()) {
+        while (matcher.find()) {//遍历匹配到的结果字符串组
+            //获取匹配到的字符串 : E:/learn/tomcat/catalina-home/lib
             String path = value.substring(matcher.start(), matcher.end());
 
+            //去除路径前后空格
             path = path.trim();
-            if (path.length() == 0) {
+            if (path.length() == 0) {//过滤掉空字符串
                 continue;
             }
 
+            //获取第一个字符 "
             char first = path.charAt(0);
+            //字后一个字符 "
             char last = path.charAt(path.length() - 1);
 
-            if (first == '"' && last == '"' && path.length() > 1) {
+            if (first == '"' && last == '"' && path.length() > 1) {//""包裹的路径
+                //设置路径的内容为""包裹中的字符串
                 path = path.substring(1, path.length() - 1);
+                //去除路径前后空格
                 path = path.trim();
-                if (path.length() == 0) {
+                if (path.length() == 0) {//过滤掉空字符串
                     continue;
                 }
-            } else if (path.contains("\"")) {
+            } else if (path.contains("\"")) {//路径中包括 " 说明路径非法
                 // Unbalanced quotes
                 // Too early to use standard i18n support. The class path hasn't
                 // been configured.
@@ -597,8 +726,11 @@ public final class Bootstrap {
                 // Not quoted - NO-OP
             }
 
+            //解析出的路径添加到结果列表
             result.add(path);
         }
+
+        //将结果哦列表转为字符串数组
         return result.toArray(new String[0]);
     }
 }

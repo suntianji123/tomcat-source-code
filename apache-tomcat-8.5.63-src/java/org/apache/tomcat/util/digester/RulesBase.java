@@ -48,9 +48,7 @@ public class RulesBase implements Rules {
 
 
     /**
-     * The set of registered Rule instances, keyed by the matching pattern.
-     * Each value is a List containing the Rules for that pattern, in the
-     * order that they were originally registered.
+     * 匹配对应的规则列表 {"Server":[ObjectCreateRule,SetPropertiesRule,SetNextRule]}
      */
     protected HashMap<String,List<Rule>> cache = new HashMap<>();
 
@@ -73,8 +71,7 @@ public class RulesBase implements Rules {
 
 
     /**
-     * The set of registered Rule instances, in the order that they were
-     * originally registered.
+     * 规则列表  [ObjectCreateRule,SetPropertiesRule,SetNextRule]
      */
     protected ArrayList<Rule> rules = new ArrayList<>();
 
@@ -138,28 +135,33 @@ public class RulesBase implements Rules {
 
 
     /**
-     * Register a new Rule instance matching the specified pattern.
-     *
-     * @param pattern Nesting pattern to be matched for this Rule
-     * @param rule Rule instance to be registered
+     * 添加一个规则
+     * @param pattern 匹配正则
+     * @param rule 规则对象
      */
     @Override
     public void add(String pattern, Rule rule) {
-        // to help users who accidentally add '/' to the end of their patterns
+        //获取匹配正则的长度
         int patternLength = pattern.length();
-        if (patternLength>1 && pattern.endsWith("/")) {
+        if (patternLength>1 && pattern.endsWith("/")) {//去掉结尾的/
             pattern = pattern.substring(0, patternLength-1);
         }
 
-
+        //获取正则的规则列表
         List<Rule> list = cache.get(pattern);
-        if (list == null) {
+        if (list == null) {//列表为null
+            //实例化列表
             list = new ArrayList<>();
+            //将列表放入map缓存对象
             cache.put(pattern, list);
         }
+
+        //将当前规则添加到 匹配正则对应的规则列表
         list.add(rule);
+        //添加一份到规则里诶包
         rules.add(rule);
         if (this.digester != null) {
+            //规则持有digester对象的引用
             rule.setDigester(this.digester);
         }
         if (this.namespaceURI != null) {
@@ -182,15 +184,11 @@ public class RulesBase implements Rules {
 
 
     /**
-     * Return a List of all registered Rule instances that match the specified
-     * nesting pattern, or a zero-length List if there are no matches.  If more
-     * than one Rule instance matches, they <strong>must</strong> be returned
-     * in the order originally registered through the <code>add()</code>
-     * method.
-     *
+     * 查找规则对应的匹配器列表
      * @param namespaceURI Namespace URI for which to select matching rules,
      *  or <code>null</code> to match regardless of namespace URI
-     * @param pattern Nesting pattern to be matched
+     * @param pattern 匹配字符串
+     * @return
      */
     @Override
     public List<Rule> match(String namespaceURI, String pattern) {
@@ -237,28 +235,24 @@ public class RulesBase implements Rules {
 
 
     /**
-     * Return a List of Rule instances for the specified pattern that also
-     * match the specified namespace URI (if any).  If there are no such
-     * rules, return <code>null</code>.
-     *
-     * @param namespaceURI Namespace URI to match, or <code>null</code> to
-     *  select matching rules regardless of namespace URI
-     * @param pattern Pattern to be matched
-     * @return a rules list
+     * 查找某个匹配字符串对应的规则列表
+     * @param namespaceURI 规则的命名空间
+     * @param pattern 匹配字符串
+     * @return
      */
     protected List<Rule> lookup(String namespaceURI, String pattern) {
-        // Optimize when no namespace URI is specified
+        //获取匹配字符串对应的规则列表
         List<Rule> list = this.cache.get(pattern);
-        if (list == null) {
+        if (list == null) {//列表为null 直接返回
             return null;
         }
         if ((namespaceURI == null) || (namespaceURI.length() == 0)) {
             return list;
         }
 
-        // Select only Rules that match on the specified namespace URI
+        //实例化list数组
         ArrayList<Rule> results = new ArrayList<>();
-        for (Rule item : list) {
+        for (Rule item : list) {//遍历规则列表 返回命名空间匹配的规则列表
             if ((namespaceURI.equals(item.getNamespaceURI())) ||
                     (item.getNamespaceURI() == null)) {
                 results.add(item);

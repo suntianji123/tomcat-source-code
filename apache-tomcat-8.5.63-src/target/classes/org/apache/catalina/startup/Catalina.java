@@ -87,13 +87,12 @@ public class Catalina {
     protected boolean await = false;
 
     /**
-     * Pathname to the server configuration file.
+     * 创建Server的配置文件路径
      */
     protected String configFile = "conf/server.xml";
 
-    // XXX Should be moved to embedded
     /**
-     * The shared extensions class loader for this server.
+     * 父classLoader
      */
     protected ClassLoader parentClassLoader =
         Catalina.class.getClassLoader();
@@ -118,7 +117,7 @@ public class Catalina {
 
 
     /**
-     * Is naming enabled ?
+     * 启动名字
      */
     protected boolean useNaming = true;
 
@@ -214,21 +213,22 @@ public class Catalina {
 
 
     /**
-     * Process the specified command line arguments.
-     *
-     * @param args Command line arguments to process
-     * @return <code>true</code> if we should continue processing
+     * 判断load方法的String[] 参数值的合法性
+     * @param args 参数组 string[]数组
+     * @return
      */
     protected boolean arguments(String args[]) {
 
+        //是否已经配置
         boolean isConfig = false;
 
-        if (args.length < 1) {
+        if (args.length < 1) {//参数值数组中没有元素
+            //打印参数不可用
             usage();
             return false;
         }
 
-        for (String arg : args) {
+        for (String arg : args) {//遍历参数值数组
             if (isConfig) {
                 configFile = arg;
                 isConfig = false;
@@ -239,7 +239,7 @@ public class Catalina {
             } else if (arg.equals("-help")) {
                 usage();
                 return false;
-            } else if (arg.equals("start")) {
+            } else if (arg.equals("start")) {//启动
                 // NOOP
             } else if (arg.equals("configtest")) {
                 // NOOP
@@ -256,13 +256,13 @@ public class Catalina {
 
 
     /**
-     * Return a File object representing our configuration file.
-     * @return the main configuration file
+     * 创建配置文件  e:\learn\tomcat\catalina-home\conf\server.xml
+     * @return
      */
     protected File configFile() {
-
+        //实例化一个文件
         File file = new File(configFile);
-        if (!file.isAbsolute()) {
+        if (!file.isAbsolute()) {//e:\learn\tomcat\catalina-home\conf\server.xml
             file = new File(Bootstrap.getCatalinaBase(), configFile);
         }
         return file;
@@ -271,30 +271,45 @@ public class Catalina {
 
 
     /**
-     * Create and configure the Digester we will be using for startup.
-     * @return the main digester to parse server.xml
+     * 创建用于启动的配置
+     * @return
      */
     protected Digester createStartDigester() {
+
+        //当前系统时间
         long t1=System.currentTimeMillis();
         // Initialize the digester
+
+        //实例化一个用于Catalina启动的Digester对象
         Digester digester = new Digester();
+        //设置不校验
         digester.setValidating(false);
+        //设置规则校验为true
         digester.setRulesValidation(true);
+        //伪造的属性map
         Map<Class<?>, List<String>> fakeAttributes = new HashMap<>();
+        //属性列表
         List<String> objectAttrs = new ArrayList<>();
+        //添加className属性
         objectAttrs.add("className");
+        //将Object的class对象放入 伪造的属性map中
         fakeAttributes.put(Object.class, objectAttrs);
-        // Ignore attribute added by Eclipse for its internal tracking
+        // 上下文属性
         List<String> contextAttrs = new ArrayList<>();
+        //添加source
         contextAttrs.add("source");
+        //将StandardContext.class对象放入 伪造的属性map中
         fakeAttributes.put(StandardContext.class, contextAttrs);
+        //设置伪造的属性map
         digester.setFakeAttributes(fakeAttributes);
+        //设置使用上下文加载器
         digester.setUseContextClassLoader(true);
 
-        // Configure the actions we will be using
+        // 配置 创建Server的规则对象
         digester.addObjectCreate("Server",
                                  "org.apache.catalina.core.StandardServer",
                                  "className");
+
         digester.addSetProperties("Server");
         digester.addSetNext("Server",
                             "setServer",
@@ -526,38 +541,56 @@ public class Catalina {
 
 
     /**
-     * Start a new server instance.
+     * 加载方法
      */
     public void load() {
 
-        if (loaded) {
+        if (loaded) {//如果已经加载过 直接返回
             return;
         }
+
+        //设置已经贾在国
         loaded = true;
 
+        //获取系统时间
         long t1 = System.nanoTime();
 
+        //初始化文件夹
         initDirs();
 
         // Before digester - it may be needed
+        //初始化名字
+
+        //设置jvm参数catalina.useNaming=true
+        //设置jvm参数java.naming.factory.url.pkgs=org.apache.naming
+        //设置jvm参数java.naming.factory.initial=org.apache.naming.java.javaURLContextFactory
         initNaming();
 
-        // Create and execute our Digester
+        // 创建digester对象
         Digester digester = createStartDigester();
 
+        //资源输入对象
         InputSource inputSource = null;
+        //资源输入流对象
         InputStream inputStream = null;
+        //文件
         File file = null;
         try {
             try {
+
+                //e:\learn\tomcat\catalina-home\conf\server.xml
                 file = configFile();
+                //server.xml文件输入流
                 inputStream = new FileInputStream(file);
+                //server.xml文件资源
                 inputSource = new InputSource(file.toURI().toURL().toString());
             } catch (Exception e) {
                 if (log.isDebugEnabled()) {
                     log.debug(sm.getString("catalina.configFail", file), e);
                 }
             }
+
+            //文件输入流
             if (inputStream == null) {
                 try {
                     inputStream = getClass().getClassLoader()
@@ -606,8 +639,13 @@ public class Catalina {
             }
 
             try {
+
+                //设置字节流
                 inputSource.setByteStream(inputStream);
+
+                //将当前对象放入digester的数组栈
                 digester.push(this);
+                //解析Server.xml资源
                 digester.parse(inputSource);
             } catch (SAXParseException spe) {
                 log.warn("Catalina.start using " + getConfigFile() + ": " +
@@ -620,6 +658,7 @@ public class Catalina {
         } finally {
             if (inputStream != null) {
                 try {
+                    //关闭输入流
                     inputStream.close();
                 } catch (IOException e) {
                     // Ignore
@@ -652,13 +691,15 @@ public class Catalina {
     }
 
 
-    /*
-     * Load using arguments
+    /**
+     * load方法
+     * @param args 参数为 ["start"]
      */
     public void load(String args[]) {
 
         try {
-            if (arguments(args)) {
+            if (arguments(args)) {//参数合法
+                //调用加载方法
                 load();
             }
         } catch (Exception e) {
@@ -779,7 +820,7 @@ public class Catalina {
 
 
     /**
-     * Print usage information for this application.
+     * 打印参数不可用
      */
     protected void usage() {
 
@@ -807,26 +848,43 @@ public class Catalina {
     }
 
 
+    /**
+     * 设置jvm参数catalina.useNaming=true
+     * 设置jvm参数java.naming.factory.url.pkgs=org.apache.naming
+     * 设置jvm参数java.naming.factory.initial=org.apache.naming.java.javaURLContextFactory
+     * 初始化名字
+     */
     protected void initNaming() {
         // Setting additional variables
-        if (!useNaming) {
+        if (!useNaming) {//不启用名字
             log.info(sm.getString("catalina.noNaming"));
             System.setProperty("catalina.useNaming", "false");
-        } else {
+        } else {//启用名字
+            //设置jvm系统参数catalina.useNaming= true
             System.setProperty("catalina.useNaming", "true");
+
             String value = "org.apache.naming";
+
+            //获取jvm参数 java.naming.factory.url.pkgs的值
             String oldValue =
                 System.getProperty(javax.naming.Context.URL_PKG_PREFIXES);
-            if (oldValue != null) {
+            if (oldValue != null) {//存在值
+                //新的值为 org
                 value = value + ":" + oldValue;
             }
+
+            //设置 jvm参数java.naming.factory.url.pkgs的值为org.apache.naming
             System.setProperty(javax.naming.Context.URL_PKG_PREFIXES, value);
-            if( log.isDebugEnabled() ) {
+            if( log.isDebugEnabled() ) {//记录设置名字的前缀
                 log.debug("Setting naming prefix=" + value);
             }
+
+            //获取jvm参数java.naming.factory.initial的值
             value = System.getProperty
                 (javax.naming.Context.INITIAL_CONTEXT_FACTORY);
-            if (value == null) {
+            if (value == null) {//值不存在
+
+                //设置jvm参数 java.naming.factory.initial的值
                 System.setProperty
                     (javax.naming.Context.INITIAL_CONTEXT_FACTORY,
                      "org.apache.naming.java.javaURLContextFactory");

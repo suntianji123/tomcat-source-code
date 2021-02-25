@@ -31,20 +31,20 @@ import org.xml.sax.Attributes;
 public class SetPropertiesRule extends Rule {
 
     /**
-     * Process the beginning of this element.
+     * 设置属性规则对象
+     * @param namespace 规则的命名空间
+     *                  empty string if the parser is not namespace aware or the
+     *                  element has no namespace
+     * @param theName 标签名
+     * @param attributes 属性列表对象
      *
-     * @param namespace the namespace URI of the matching element, or an
-     *   empty string if the parser is not namespace aware or the element has
-     *   no namespace
-     * @param theName the local name if the parser is namespace aware, or just
-     *   the element name otherwise
-     * @param attributes The attribute list for this element
+     * @throws Exception
      */
     @Override
     public void begin(String namespace, String theName, Attributes attributes)
             throws Exception {
 
-        // Populate the corresponding properties of the top object
+       //获取栈顶对象
         Object top = digester.peek();
         if (digester.log.isDebugEnabled()) {
             if (top != null) {
@@ -57,11 +57,16 @@ public class SetPropertiesRule extends Rule {
             }
         }
 
+        //遍历所有的属性
         for (int i = 0; i < attributes.getLength(); i++) {
+            //获取属性名
             String name = attributes.getLocalName(i);
             if (name.isEmpty()) {
+                //属性名
                 name = attributes.getQName(i);
             }
+
+            //属性值
             String value = attributes.getValue(i);
 
             if (digester.log.isDebugEnabled()) {
@@ -69,6 +74,8 @@ public class SetPropertiesRule extends Rule {
                         "} Setting property '" + name + "' to '" +
                         value + "'");
             }
+
+            //设置对象的属性 | 属性值
             if (!digester.isFakeAttribute(top, name)
                     && !IntrospectionUtils.setProperty(top, name, value)
                     && digester.getRulesValidation()) {

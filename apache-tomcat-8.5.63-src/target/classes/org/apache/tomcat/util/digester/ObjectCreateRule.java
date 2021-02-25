@@ -47,17 +47,16 @@ public class ObjectCreateRule extends Rule {
 
 
     /**
-     * Construct an object create rule with the specified class name and an
-     * optional attribute name containing an override.
-     *
-     * @param className Java class name of the object to be created
-     * @param attributeName Attribute name which, if present, contains an
-     *  override of the class name to create
+     * 实例化一个对象创建规则对象
+     * @param className 对象的class类的全类名 org.apache.catalina.core.StandardServer
+     * @param attributeName 属性名
      */
     public ObjectCreateRule(String className,
                             String attributeName) {
 
+        //设置className
         this.className = className;
+        //设置属性名
         this.attributeName = attributeName;
 
     }
@@ -66,13 +65,13 @@ public class ObjectCreateRule extends Rule {
     // ----------------------------------------------------- Instance Variables
 
     /**
-     * The attribute containing an override class name if it is present.
+     * 自定义的属性名
      */
     protected String attributeName = null;
 
 
     /**
-     * The Java class name of the object to be created.
+     * 对象的class的全类名
      */
     protected String className = null;
 
@@ -81,24 +80,26 @@ public class ObjectCreateRule extends Rule {
 
 
     /**
-     * Process the beginning of this element.
      *
-     * @param namespace the namespace URI of the matching element, or an
-     *   empty string if the parser is not namespace aware or the element has
-     *   no namespace
-     * @param name the local name if the parser is namespace aware, or just
-     *   the element name otherwise
-     * @param attributes The attribute list for this element
+     * @param namespace 匹配规则的命名空间
+     *                  empty string if the parser is not namespace aware or the
+     *                  element has no namespace
+     * @param name 标签名
+     *             the element name otherwise
+     * @param attributes 标签的属性列表
+     *
+     * @throws Exception
      */
     @Override
     public void begin(String namespace, String name, Attributes attributes)
             throws Exception {
 
-        // Identify the name of the class to instantiate
+        //创建对象的class全路径
         String realClassName = className;
-        if (attributeName != null) {
+        if (attributeName != null) {//自定义的属性名
+            //获取自定义属性名的值
             String value = attributes.getValue(attributeName);
-            if (value != null) {
+            if (value != null) {//指定了自定义属性名 className属性 使用其他类来创建对象
                 realClassName = value;
             }
         }
@@ -112,9 +113,11 @@ public class ObjectCreateRule extends Rule {
                     namespace + " " + name);
         }
 
-        // Instantiate the new object and push it on the context stack
+       //获取加载器  将class类加载到虚拟机
         Class<?> clazz = digester.getClassLoader().loadClass(realClassName);
+        //构造实例
         Object instance = clazz.getConstructor().newInstance();
+        //将创建的实例添加到对象栈
         digester.push(instance);
     }
 

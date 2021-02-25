@@ -65,23 +65,7 @@ import org.xml.sax.helpers.AttributesImpl;
 
 
 /**
- * <p>A <strong>Digester</strong> processes an XML input stream by matching a
- * series of element nesting patterns to execute Rules that have been added
- * prior to the start of parsing.  This package was inspired by the
- * <code>XmlMapper</code> class that was part of Tomcat 3.0 and 3.1,
- * but is organized somewhat differently.</p>
- *
- * <p>See the <a href="package-summary.html#package_description">Digester
- * Developer Guide</a> for more information.</p>
- *
- * <p><strong>IMPLEMENTATION NOTE</strong> - A single Digester instance may
- * only be used within the context of a single thread at a time, and a call
- * to <code>parse()</code> must be completed before another can be initiated
- * even from the same thread.</p>
- *
- * <p><strong>IMPLEMENTATION NOTE</strong> - A bug in Xerces 2.0.2 prevents
- * the support of XML schema. You need Xerces 2.1/2.3 and up to make
- * this class working with XML schema</p>
+ * 用于启动Calatinal的对象类
  */
 public class Digester extends DefaultHandler2 {
 
@@ -192,14 +176,7 @@ public class Digester extends DefaultHandler2 {
 
 
     /**
-     * Stack whose elements are List objects, each containing a list of
-     * Rule objects as returned from Rules.getMatch(). As each xml element
-     * in the input is entered, the matching rules are pushed onto this
-     * stack. After the end tag is reached, the matches are popped again.
-     * The depth of is stack is therefore exactly the same as the current
-     * "nesting" level of the input xml.
-     *
-     * @since 1.6
+     * 匹配的规则列表栈
      */
     protected ArrayStack<List<Rule>> matches = new ArrayStack<>(10);
 
@@ -238,7 +215,7 @@ public class Digester extends DefaultHandler2 {
 
 
     /**
-     * The SAXParserFactory that is created the first time we need it.
+     * SAXParser解析器工厂
      */
     protected SAXParserFactory factory = null;
 
@@ -249,7 +226,7 @@ public class Digester extends DefaultHandler2 {
 
 
     /**
-     * The current match pattern for nested element processing.
+     * 匹配正则
      */
     protected String match = "";
 
@@ -292,7 +269,7 @@ public class Digester extends DefaultHandler2 {
 
 
     /**
-     * The XMLReader used to parse digester rules.
+     * 用于读取.xml文件的xml阅读器对象
      */
     protected XMLReader reader = null;
 
@@ -313,14 +290,13 @@ public class Digester extends DefaultHandler2 {
     protected Rules rules = null;
 
     /**
-     * The object stack being constructed.
+     * 解析xml标签获取的对象栈
      */
     protected ArrayStack<Object> stack = new ArrayStack<>();
 
 
     /**
-     * Do we want to use the Context ClassLoader when loading classes
-     * for instantiating new objects.  Default is <code>false</code>.
+     * 是否使用上下文类加载器 默认为true
      */
     protected boolean useContextClassLoader = false;
 
@@ -338,7 +314,7 @@ public class Digester extends DefaultHandler2 {
 
 
     /**
-     * Fake attributes map (attributes are often used for object creation).
+     * 伪造的属性map {object.class:["className"],StandardContext.class:["source"]}
      */
     protected Map<Class<?>, List<String>> fakeAttributes = null;
 
@@ -411,23 +387,17 @@ public class Digester extends DefaultHandler2 {
 
 
     /**
-     * Return the class loader to be used for instantiating application objects
-     * when required.  This is determined based upon the following rules:
-     * <ul>
-     * <li>The class loader set by <code>setClassLoader()</code>, if any</li>
-     * <li>The thread context class loader, if it exists and the
-     *     <code>useContextClassLoader</code> property is set to true</li>
-     * <li>The class loader used to load the Digester class itself.
-     * </ul>
-     * @return the classloader
+     * 获取类加载器
+     * @return
      */
     public ClassLoader getClassLoader() {
-        if (this.classLoader != null) {
+        if (this.classLoader != null) {//指定了类加载器 直接返回加载器
             return this.classLoader;
         }
-        if (this.useContextClassLoader) {
+        if (this.useContextClassLoader) {//如果没有指定类加载器  则使用当前线程的上下文类加载器
+            //类加载器
             ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-            if (classLoader != null) {
+            if (classLoader != null) {//类加载器存在 直接返回加载器
                 return classLoader;
             }
         }
@@ -487,24 +457,27 @@ public class Digester extends DefaultHandler2 {
 
 
     /**
-     * SAX parser factory method.
-     * @return the SAXParserFactory we will use, creating one if necessary.
-     * @throws ParserConfigurationException Error creating parser
-     * @throws SAXNotSupportedException Error creating parser
-     * @throws SAXNotRecognizedException Error creating parser
+     * 获取SAXParser 解析器工厂
+     * @return
+     * @throws SAXNotRecognizedException
+     * @throws SAXNotSupportedException
+     * @throws ParserConfigurationException
      */
     public SAXParserFactory getFactory() throws SAXNotRecognizedException, SAXNotSupportedException,
             ParserConfigurationException {
 
-        if (factory == null) {
+        if (factory == null) {//解析器为null  实例化一个SAXFactory对象
             factory = SAXParserFactory.newInstance();
 
+            //设置工厂不适用命名空间
             factory.setNamespaceAware(namespaceAware);
             // Preserve xmlns attributes
-            if (namespaceAware) {
+            if (namespaceAware) {//如果使用命名空间
+                //设置工厂商标
                 factory.setFeature("http://xml.org/sax/features/namespace-prefixes", true);
             }
 
+            //设置不校验
             factory.setValidating(validating);
             if (validating) {
                 // Enable DTD validation
@@ -665,18 +638,20 @@ public class Digester extends DefaultHandler2 {
 
 
     /**
-     * @return the SAXParser we will use to parse the input stream.  If there
-     * is a problem creating the parser, return <code>null</code>.
+     * 获取解析器
+     * @return
      */
     public SAXParser getParser() {
 
         // Return the parser we already created (if any)
-        if (parser != null) {
+        if (parser != null) {//解析器存在 直接返回
             return parser;
         }
 
         // Create a new parser
         try {
+
+            //调用工厂生产一个SAXParset解析器
             parser = getFactory().newSAXParser();
         } catch (Exception e) {
             log.error("Digester.getParser: ", e);
@@ -709,13 +684,12 @@ public class Digester extends DefaultHandler2 {
 
 
     /**
-     * Return the <code>Rules</code> implementation object containing our
-     * rules collection and associated matching policy.  If none has been
-     * established, a default implementation will be created and returned.
-     * @return the rules
+     * 获取规则对象
+     * @return
      */
     public Rules getRules() {
         if (this.rules == null) {
+            //基本规则
             this.rules = new RulesBase();
             this.rules.setDigester(this);
         }
@@ -840,38 +814,45 @@ public class Digester extends DefaultHandler2 {
 
 
     /**
-     * Return the XMLReader to be used for parsing the input document.
-     *
-     * FIX ME: there is a bug in JAXP/XERCES that prevent the use of a
-     * parser that contains a schema with a DTD.
-     * @return the XML reader
-     * @exception SAXException if no XMLReader can be instantiated
+     * 获取xml阅读器对象
+     * @return
+     * @throws SAXException
      */
     public XMLReader getXMLReader() throws SAXException {
-        if (reader == null) {
+        if (reader == null) {//当前xml解析器为null
+            //设置xml阅读器为SAXFactory工厂生产的阅读器
             reader = getParser().getXMLReader();
         }
 
+        //设置阅读的dtdhandler
         reader.setDTDHandler(this);
+        //社会内容处理器
         reader.setContentHandler(this);
 
+        //实体解析器
         EntityResolver entityResolver = getEntityResolver();
         if (entityResolver == null) {
+            //实体解析器为当前对象
             entityResolver = this;
         }
 
         // Wrap the resolver so we can perform ${...} property replacement
-        if (entityResolver instanceof EntityResolver2) {
+        if (entityResolver instanceof EntityResolver2) {//包装试题解析器2
             entityResolver = new EntityResolver2Wrapper((EntityResolver2) entityResolver, source, classLoader);
         } else {
             entityResolver = new EntityResolverWrapper(entityResolver, source, classLoader);
         }
 
+        //设置实体解析器
         reader.setEntityResolver(entityResolver);
 
+        //设置阅读器的属性
         reader.setProperty("http://xml.org/sax/properties/lexical-handler", this);
 
+        //设置解析错误的handler
         reader.setErrorHandler(this);
+
+        //返回阅读器对象
         return reader;
     }
 
@@ -1192,17 +1173,12 @@ public class Digester extends DefaultHandler2 {
 
 
     /**
-     * Process notification of the start of an XML element being reached.
-     *
-     * @param namespaceURI The Namespace URI, or the empty string if the element
-     *   has no Namespace URI or if Namespace processing is not being performed.
-     * @param localName The local name (without prefix), or the empty
-     *   string if Namespace processing is not being performed.
-     * @param qName The qualified name (with prefix), or the empty
-     *   string if qualified names are not available.\
-     * @param list The attributes attached to the element. If there are
-     *   no attributes, it shall be an empty Attributes object.
-     * @exception SAXException if a parsing error is to be reported
+     * 开始属性标签
+     * @param namespaceURI 命名空间
+     * @param localName 本地名
+     * @param qName 标签名
+     * @param list  属性列表
+     * @throws SAXException
      */
     @Override
     public void startElement(String namespaceURI, String localName, String qName, Attributes list)
@@ -1213,41 +1189,50 @@ public class Digester extends DefaultHandler2 {
             saxLog.debug("startElement(" + namespaceURI + "," + localName + "," + qName + ")");
         }
 
-        // Parse system properties
+        // 更新属性列表
         list = updateAttributes(list);
 
-        // Save the body text accumulated for our surrounding element
+        // 标签字符串列表
         bodyTexts.push(bodyText);
+        //设置标签字符串对象
         bodyText = new StringBuilder();
 
-        // the actual element name is either in localName or qName, depending
-        // on whether the parser is namespace aware
+        //本地名
         String name = localName;
         if ((name == null) || (name.length() < 1)) {
+            //名字为标签名
             name = qName;
         }
 
-        // Compute the current matching rule
+        //拼接字符串
         StringBuilder sb = new StringBuilder(match);
         if (match.length() > 0) {
             sb.append('/');
         }
+
+        //sb：标签名：Server
         sb.append(name);
+
+        //match ： Server
         match = sb.toString();
         if (debug) {
             log.debug("  New match='" + match + "'");
         }
 
-        // Fire "begin" events for all relevant rules
+        // 查找匹配器对应的规则列表
         List<Rule> rules = getRules().match(namespaceURI, match);
+        //匹配的规则列表
         matches.push(rules);
         if ((rules != null) && (rules.size() > 0)) {
-            for (Rule value : rules) {
+            for (Rule value : rules) {//遍历规则对象
                 try {
+                    //规则
                     Rule rule = value;
                     if (debug) {
                         log.debug("  Fire begin() for " + rule);
                     }
+
+                    //调用规则的开始方法
                     rule.begin(namespaceURI, name, list);
                 } catch (Exception e) {
                     log.error("Begin event threw exception", e);
@@ -1499,17 +1484,17 @@ public class Digester extends DefaultHandler2 {
 
 
     /**
-     * Parse the content of the specified input source using this Digester.
-     * Returns the root element from the object stack (if any).
-     *
-     * @param input Input source containing the XML data to be parsed
-     * @return the root object
-     * @exception IOException if an input/output error occurs
-     * @exception SAXException if a parsing exception occurs
+     * 解析某个输入资源 比如e:\learn\tomcat\catalina-home\conf\server.xml对应的资源
+     * @param input 输入资源
+     * @return
+     * @throws IOException
+     * @throws SAXException
      */
     public Object parse(InputSource input) throws IOException, SAXException {
         configure();
+        //获取xml阅读器 解析.xml文件
         getXMLReader().parse(input);
+        //返回数组栈的根元素
         return root;
     }
 
@@ -1566,15 +1551,15 @@ public class Digester extends DefaultHandler2 {
 
 
     /**
-     * <p>Register a new Rule matching the specified pattern.
-     * This method sets the <code>Digester</code> property on the rule.</p>
-     *
-     * @param pattern Element matching pattern
-     * @param rule Rule to be registered
+     * 添加规则
+     * @param pattern 匹配正则
+     * @param rule 规则
      */
     public void addRule(String pattern, Rule rule) {
 
+        //设置digester对象
         rule.setDigester(this);
+        //获取规则列表 添加正则对应的规则
         getRules().add(pattern, rule);
 
     }
@@ -1680,16 +1665,14 @@ public class Digester extends DefaultHandler2 {
 
 
     /**
-     * Add an "object create" rule for the specified parameters.
-     *
-     * @param pattern Element matching pattern
-     * @param className Default Java class name to be created
-     * @param attributeName Attribute name that optionally overrides
-     *  the default Java class name to be created
-     * @see ObjectCreateRule
+     * 添加对象创建鬼咋
+     * @param pattern 匹配正则字符串 Server
+     * @param className class类全类名 比如 org.apache.catalina.core.StandardServer
+     * @param attributeName 属性名className
      */
     public void addObjectCreate(String pattern, String className, String attributeName) {
 
+        //添加规则
         addRule(pattern, new ObjectCreateRule(className, attributeName));
 
     }
@@ -1712,15 +1695,12 @@ public class Digester extends DefaultHandler2 {
 
     }
 
-
     /**
-     * Add a "set properties" rule for the specified parameters.
-     *
-     * @param pattern Element matching pattern
-     * @see SetPropertiesRule
+     * 设置属性
+     * @param pattern 匹配正则
      */
     public void addSetProperties(String pattern) {
-
+        //添加一个set属性的规则
         addRule(pattern, new SetPropertiesRule());
 
     }
@@ -1994,22 +1974,25 @@ public class Digester extends DefaultHandler2 {
     // ------------------------------------------------------- Private Methods
 
 
-   /**
-     * Returns an attributes list which contains all the attributes
-     * passed in, with any text of form "${xxx}" in an attribute value
-     * replaced by the appropriate value from the system property.
+    /**
+     * 更新属性列表
+     * @param list
+     * @return
      */
     private Attributes updateAttributes(Attributes list) {
 
-        if (list.getLength() == 0) {
+        if (list.getLength() == 0) {//没有属性
             return list;
         }
 
+        //属性实现
         AttributesImpl newAttrs = new AttributesImpl(list);
+        //属性数量
         int nAttributes = newAttrs.getLength();
-        for (int i = 0; i < nAttributes; ++i) {
+        for (int i = 0; i < nAttributes; ++i) {//获取每一个属性值
             String value = newAttrs.getValue(i);
             try {
+                //设置属性下标对应的值
                 newAttrs.setValue(i, IntrospectionUtils.replaceProperties(value, null, source, getClassLoader()).intern());
             } catch (Exception e) {
                 log.warn(sm.getString("digester.failedToUpdateAttributes", newAttrs.getLocalName(i), value), e);
@@ -2044,15 +2027,38 @@ public class Digester extends DefaultHandler2 {
     }
 
 
+    /**
+     * EntityResolver实体解析器包装对象类
+     */
     private static class EntityResolverWrapper implements EntityResolver {
 
+        /**
+         * EntityResolver实体解析器
+         */
         private final EntityResolver entityResolver;
+
+        /**
+         * 属性资源数组
+         */
         private final PropertySource[] source;
+
+        /**
+         * 类加载器
+         */
         private final ClassLoader classLoader;
 
+        /**
+         * 实例化一个EntityResolver实体解析器对象
+         * @param entityResolver 实体解析器对象
+         * @param source 资源
+         * @param classLoader 类加载器
+         */
         public EntityResolverWrapper(EntityResolver entityResolver, PropertySource[] source, ClassLoader classLoader) {
+            //设置实体解析器
             this.entityResolver = entityResolver;
+            //设置资源
             this.source = source;
+            //设置类加载器
             this.classLoader = classLoader;
         }
 
@@ -2074,10 +2080,22 @@ public class Digester extends DefaultHandler2 {
     }
 
 
+    /**
+     * EntrtyResovler2实体解析器的包装对象
+     */
     private static class EntityResolver2Wrapper extends EntityResolverWrapper implements EntityResolver2 {
 
+        /**
+         * 被包装的原始EntiryResolver2对象
+         */
         private final EntityResolver2 entityResolver2;
 
+        /**
+         * 实例一个实体解析器包装对象
+         * @param entityResolver 被包装的实体解析器EntityResolver2对象
+         * @param source 属性资源
+         * @param classLoader 类加载器
+         */
         public EntityResolver2Wrapper(EntityResolver2 entityResolver, PropertySource[] source,
                 ClassLoader classLoader) {
             super(entityResolver, source, classLoader);

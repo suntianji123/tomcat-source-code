@@ -17,25 +17,33 @@
 package org.apache.catalina.security;
 
 /**
- * Static class used to preload java classes when using the
- * Java SecurityManager so that the defineClassInPackage
- * RuntimePermission does not trigger an AccessControlException.
- *
- * @author Glenn L. Nielsen
+ * 安全的类加载类
  */
 public final class SecurityClassLoad {
 
+    /**
+     * 安全的加载
+     * @param loader 类加载器
+     * @throws Exception
+     */
     public static void securityClassLoad(ClassLoader loader) throws Exception {
         securityClassLoad(loader, true);
     }
 
 
+    /**
+     * 安全的类加载
+     * @param loader 加载器
+     * @param requireSecurityManager 是否需要安全管理器
+     * @throws Exception
+     */
     static void securityClassLoad(ClassLoader loader, boolean requireSecurityManager) throws Exception {
 
-        if (requireSecurityManager && System.getSecurityManager() == null) {
+        if (requireSecurityManager && System.getSecurityManager() == null) {//需要安全管理器 并且安全管理器为null
             return;
         }
 
+        //加载引擎包
         loadCorePackage(loader);
         loadCoyotePackage(loader);
         loadLoaderPackage(loader);
@@ -49,8 +57,16 @@ public final class SecurityClassLoad {
     }
 
 
+    /**
+     * 加载引擎包
+     * @param loader 类加载器
+     * @throws Exception
+     */
     private static final void loadCorePackage(ClassLoader loader) throws Exception {
+
+        //基本包路径
         final String basePackage = "org.apache.catalina.core.";
+        //加载类到虚拟机
         loader.loadClass(basePackage + "AccessLogAdapter");
         loader.loadClass(basePackage + "ApplicationContextFacade$PrivilegedExecuteMethod");
         loader.loadClass(basePackage + "ApplicationDispatcher$PrivilegedForward");

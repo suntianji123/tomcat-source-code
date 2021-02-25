@@ -49,8 +49,7 @@ public final class Constants {
     public static final String NoDefaultWebXml = "org/apache/catalina/startup/NO_DEFAULT_XML";
 
     /**
-     * Name of the system property containing
-     * the tomcat product installation path
+     * catalina-home文件jvm系统参数名
      */
     public static final String CATALINA_HOME_PROP = "catalina.home";
 

@@ -34,18 +34,24 @@ public final class IntrospectionUtils {
     private static final Log log = LogFactory.getLog(IntrospectionUtils.class);
 
     /**
-     * Find a method with the right name If found, call the method ( if param is
-     * int or boolean we'll convert value to the right type before) - that means
-     * you can have setDebug(1).
-     * @param o The object to set a property on
-     * @param name The property name
-     * @param value The property value
-     * @return <code>true</code> if operation was successful
+     * 设置某个对象的属性对应的属性值
+     * @param o 对象
+     * @param name 属性名
+     * @param value 属性值
+     * @return
      */
     public static boolean setProperty(Object o, String name, String value) {
         return setProperty(o,name,value,true);
     }
 
+    /**
+     * 设置对象的属性
+     * @param o 对象
+     * @param name 属性名
+     * @param value 属性值
+     * @param invokeSetProperty
+     * @return
+     */
     @SuppressWarnings("null") // setPropertyMethodVoid is not null when used
     public static boolean setProperty(Object o, String name, String value,
             boolean invokeSetProperty) {
@@ -53,26 +59,32 @@ public final class IntrospectionUtils {
             log.debug("IntrospectionUtils: setProperty(" +
                     o.getClass() + " " + name + "=" + value + ")");
 
+        //获取属性的set方法名
         String setter = "set" + capitalize(name);
 
         try {
+            //获取对象的class类中素有的方法
             Method methods[] = findMethods(o.getClass());
+            //设置属性值 返回void的方法
             Method setPropertyMethodVoid = null;
+            //设置属性值 返回 boolean的方法
             Method setPropertyMethodBool = null;
 
             // First, the ideal case - a setFoo( String ) method
-            for (Method item : methods) {
+            for (Method item : methods) {//遍历class对应的方法列表
+                //获取方法的参数里诶包
                 Class<?> paramT[] = item.getParameterTypes();
                 if (setter.equals(item.getName()) && paramT.length == 1
-                        && "java.lang.String".equals(paramT[0].getName())) {
+                        && "java.lang.String".equals(paramT[0].getName())) {//找到了方法
 
+                    //执行对象的设置属性方法
                     item.invoke(o, new Object[]{value});
                     return true;
                 }
             }
 
             // Try a setFoo ( int ) or ( boolean )
-            for (Method method : methods) {
+            for (Method method : methods) {//之前没有找到方法
                 boolean ok = true;
                 if (setter.equals(method.getName())
                         && method.getParameterTypes().length == 1) {
@@ -83,15 +95,16 @@ public final class IntrospectionUtils {
 
                     // Try a setFoo ( int )
                     if ("java.lang.Integer".equals(paramType.getName())
-                            || "int".equals(paramType.getName())) {
+                            || "int".equals(paramType.getName())) {//参数的类型为int 或者Integer
                         try {
+                            //设置参数值
                             params[0] = Integer.valueOf(value);
                         } catch (NumberFormatException ex) {
                             ok = false;
                         }
                         // Try a setFoo ( long )
                     } else if ("java.lang.Long".equals(paramType.getName())
-                            || "long".equals(paramType.getName())) {
+                            || "long".equals(paramType.getName())) {//参数类型为Long或者long
                         try {
                             params[0] = Long.valueOf(value);
                         } catch (NumberFormatException ex) {
@@ -105,8 +118,9 @@ public final class IntrospectionUtils {
 
                         // Try a setFoo ( InetAddress )
                     } else if ("java.net.InetAddress".equals(paramType
-                            .getName())) {
+                            .getName())) {//参数的类型为InetAddress类型
                         try {
+                            //获取参数
                             params[0] = InetAddress.getByName(value);
                         } catch (UnknownHostException exc) {
                             if (log.isDebugEnabled())
@@ -121,15 +135,16 @@ public final class IntrospectionUtils {
                                     paramType.getName());
                     }
 
-                    if (ok) {
+                    if (ok) {//找到了方法
+                        //执行方法 设置对象的属性值
                         method.invoke(o, params);
                         return true;
                     }
                 }
 
                 // save "setProperty" for later
-                if ("setProperty".equals(method.getName())) {
-                    if (method.getReturnType() == Boolean.TYPE) {
+                if ("setProperty".equals(method.getName())) {//设置属性方法
+                    if (method.getReturnType() == Boolean.TYPE) {//方法的返回值为boolean 类型
                         setPropertyMethodBool = method;
                     } else {
                         setPropertyMethodVoid = method;
@@ -138,14 +153,18 @@ public final class IntrospectionUtils {
                 }
             }
 
-            // Ok, no setXXX found, try a setProperty("name", "value")
+            // 执行设置属性值方法
             if (invokeSetProperty && (setPropertyMethodBool != null ||
                     setPropertyMethodVoid != null)) {
+                //参数值数组
                 Object params[] = new Object[2];
+                //第一个参数为属性名
                 params[0] = name;
+                //第二个参数属性值
                 params[1] = value;
-                if (setPropertyMethodBool != null) {
+                if (setPropertyMethodBool != null) {//返回boolean的设置属性值方法不为null
                     try {
+                        //执行对象的添加属性|属性值方法
                         return ((Boolean) setPropertyMethodBool.invoke(o,
                                 params)).booleanValue();
                     }catch (IllegalArgumentException biae) {
@@ -159,6 +178,7 @@ public final class IntrospectionUtils {
                         }
                     }
                 } else {
+                    //执行对象的设置属性 | 属性值方法 返回结果
                     setPropertyMethodVoid.invoke(o, params);
                     return true;
                 }
@@ -253,28 +273,29 @@ public final class IntrospectionUtils {
     }
 
     /**
-     * Replace ${NAME} with the property value.
-     * @param value The value
-     * @param staticProp Replacement properties
-     * @param dynamicProp Replacement properties
-     * @param classLoader Class loader associated with the code requesting the
-     *                    property
-     *
-     * @return the replacement value
+     * 替换属性值
+     * @param value 属性值
+     * @param staticProp 静态属性值map
+     * @param dynamicProp 动态属性数值数组
+     * @param classLoader 类加载器
+     * @return
      */
     public static String replaceProperties(String value,
             Hashtable<Object,Object> staticProp, PropertySource dynamicProp[],
             ClassLoader classLoader) {
 
-        if (value.indexOf('$') < 0) {
+        if (value.indexOf('$') < 0) {//如果属性值中布包好$ 直接返回
             return value;
         }
+
+        //实例化一个StringBuilder对象
         StringBuilder sb = new StringBuilder();
         int prev = 0;
         // assert value!=nil
         int pos;
-        while ((pos = value.indexOf('$', prev)) >= 0) {
-            if (pos > 0) {
+        while ((pos = value.indexOf('$', prev)) >= 0) {//获取$字符的位置
+            if (pos > 0) {//不是第一个字符
+                //截取$之前的字符串
                 sb.append(value.substring(prev, pos));
             }
             if (pos == (value.length() - 1)) {
@@ -337,16 +358,20 @@ public final class IntrospectionUtils {
     }
 
     /**
-     * Reverse of Introspector.decapitalize.
-     * @param name The name
-     * @return the capitalized string
+     * 将某个属性名的首字母改为大小
+     * @param name 属性名
+     * @return
      */
     public static String capitalize(String name) {
-        if (name == null || name.length() == 0) {
+        if (name == null || name.length() == 0) {//属性名为空字符串
             return name;
         }
+
+        //获取属性名字符数组
         char chars[] = name.toCharArray();
+        //获取字符串的第0个字符 将第0个字符转为大小
         chars[0] = Character.toUpperCase(chars[0]);
+        //创建一个新的字符串
         return new String(chars);
     }
 
@@ -355,39 +380,63 @@ public final class IntrospectionUtils {
         objectMethods.clear();
     }
 
+    /**
+     * class对象 | 方法列表
+     */
     private static final Hashtable<Class<?>,Method[]> objectMethods = new Hashtable<>();
 
+    /**
+     * 获取某个class对象的所有的方法
+     * @param c
+     * @return
+     */
     public static Method[] findMethods(Class<?> c) {
+        //如果之前缓存过这个class对象的方法列表
         Method methods[] = objectMethods.get(c);
         if (methods != null)
+            //直接从缓存中查找到的方法列表
             return methods;
 
+        //获取class对象素有的方法
         methods = c.getMethods();
+        //将class对象对应的方法里诶包缓存起来
         objectMethods.put(c, methods);
+        //返回class对应的方法列表
         return methods;
     }
 
+    /**
+     * 获取某个class对象的某个方法名的方法对象
+     * @param c  class类对象
+     * @param name 方法名
+     * @param params 方法参数类型数组
+     * @return
+     */
     @SuppressWarnings("null") // params cannot be null when comparing lengths
     public static Method findMethod(Class<?> c, String name,
             Class<?> params[]) {
+        //获取class对象中所有的方法列表
         Method methods[] = findMethods(c);
-        for (Method method : methods) {
-            if (method.getName().equals(name)) {
+        for (Method method : methods) {//遍历所有的方法
+            if (method.getName().equals(name)) {//如果方法的名字与指定的方法名相同 查找到当前方法
+                //获取方法的参数类型列表
                 Class<?> methodParams[] = method.getParameterTypes();
-                if (params == null && methodParams.length == 0) {
+                if (params == null && methodParams.length == 0) {//方法没有参数 直接返回
                     return method;
                 }
-                if (params.length != methodParams.length) {
+                if (params.length != methodParams.length) {//参数类型数组的数量必须相同
                     continue;
                 }
+
+                //是否查找到
                 boolean found = true;
-                for (int j = 0; j < params.length; j++) {
-                    if (params[j] != methodParams[j]) {
+                for (int j = 0; j < params.length; j++) {//遍历指定的参数类型数组
+                    if (params[j] != methodParams[j]) {//参数的数组数组必须与找到的参数数组一直
                         found = false;
                         break;
                     }
                 }
-                if (found) {
+                if (found) {//返回方法
                     return method;
                 }
             }
