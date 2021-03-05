@@ -40,14 +40,7 @@ import org.apache.tomcat.util.descriptor.web.ErrorPage;
 import org.apache.tomcat.util.res.StringManager;
 
 /**
- * Valve that implements the default basic behavior for the
- * <code>StandardHost</code> container implementation.
- * <p>
- * <b>USAGE CONSTRAINT</b>:  This implementation is likely to be useful only
- * when processing HTTP requests.
- *
- * @author Craig R. McClanahan
- * @author Remy Maucherat
+ * 标准的主机值
  */
 final class StandardHostValve extends ValveBase {
 
@@ -76,6 +69,10 @@ final class StandardHostValve extends ValveBase {
     }
 
     //------------------------------------------------------ Constructor
+
+    /**
+     * 实例化一个标准的主机值
+     */
     public StandardHostValve() {
         super(true);
     }

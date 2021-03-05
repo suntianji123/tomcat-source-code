@@ -46,16 +46,19 @@ public class AprLifecycleListener
     implements LifecycleListener {
 
     private static final Log log = LogFactory.getLog(AprLifecycleListener.class);
-    private static boolean instanceCreated = false;
+
     /**
-     * Info messages during init() are cached until Lifecycle.BEFORE_INIT_EVENT
-     * so that, in normal (non-error) cases, init() related log messages appear
-     * at the expected point in the lifecycle.
+     * 实例是否已经创建
+     */
+    private static boolean instanceCreated = false;
+
+    /**
+     * 执行init方法时 需要记录的属性值
      */
     private static final List<String> initInfoLogMessages = new ArrayList<>(3);
 
     /**
-     * The string manager for this package.
+     * org.apache.catalina.core.LocalStrings文件对应的属性值管理器
      */
     protected static final StringManager sm =
         StringManager.getManager(Constants.Package);
@@ -71,11 +74,17 @@ public class AprLifecycleListener
     protected static final int TCN_RECOMMENDED_PV = 23;
 
 
-    // ---------------------------------------------- Properties
+    /**
+     * 是否打开ssl引擎
+     */
     protected static String SSLEngine = "on"; //default on
     protected static String FIPSMode = "off"; // default off, valid only when SSLEngine="on"
     protected static String SSLRandomSeed = "builtin";
     protected static boolean sslInitialized = false;
+
+    /**
+     * apr库是否初始化完成
+     */
     protected static boolean aprInitialized = false;
     protected static boolean aprAvailable = false;
     protected static boolean useAprConnector = false;
@@ -98,18 +107,28 @@ public class AprLifecycleListener
 
     private static final int FIPS_OFF = 0;
 
+    /**
+     * 访问Apr生命周期监听器的锁
+     */
     protected static final Object lock = new Object();
 
+    /**
+     * 判断Apr生命周期监听器是否可用
+     * @return
+     */
     public static boolean isAprAvailable() {
         //https://bz.apache.org/bugzilla/show_bug.cgi?id=48613
-        if (instanceCreated) {
-            synchronized (lock) {
+        if (instanceCreated) {//实例已经创建
+            synchronized (lock) {//加锁
                 init();
             }
         }
         return aprAvailable;
     }
 
+    /**
+     * 实例化一个Apr生命周期的监听器
+     */
     public AprLifecycleListener() {
         instanceCreated = true;
     }
@@ -117,19 +136,22 @@ public class AprLifecycleListener
     // ---------------------------------------------- LifecycleListener Methods
 
     /**
-     * Primary entry point for startup and shutdown events.
-     *
-     * @param event The event that has occurred
+     * 记录  The Apache Tomcat Native library which allows using OpenSSL was not found on the java.library.path: [{0}]日志信息
+     * @param event 生命周期事件对象
      */
     @Override
     public void lifecycleEvent(LifecycleEvent event) {
 
-        if (Lifecycle.BEFORE_INIT_EVENT.equals(event.getType())) {
-            synchronized (lock) {
+        if (Lifecycle.BEFORE_INIT_EVENT.equals(event.getType())) {//事件类型 before_init
+            synchronized (lock) {//加锁
+                //初始化
                 init();
-                for (String msg : initInfoLogMessages) {
+                for (String msg : initInfoLogMessages) {//遍历初始化消息
+                    //记录初始化消息
                     log.info(msg);
                 }
+
+                //清理运行初始化方法记录的消息
                 initInfoLogMessages.clear();
                 if (aprAvailable) {
                     try {
@@ -180,18 +202,27 @@ public class AprLifecycleListener
         fipsModeActive = false;
     }
 
+    /**
+     * 从系统库中找出 "tcnative-1.dll", "libtcnative-1.dll"进行加载 默认系统库中没有这两个库
+     * 初始化Apr生命周期监听器
+     * 检查是否有Apc/Native库 如果有 将其加载
+     */
     private static void init()
     {
         int major = 0;
         int minor = 0;
         int patch = 0;
         int apver = 0;
+        //rqver = 1*1000 + 2*100 + 14
         int rqver = TCN_REQUIRED_MAJOR * 1000 + TCN_REQUIRED_MINOR * 100 + TCN_REQUIRED_PATCH;
+        //rcver = 1*1000 + 2*100 + 23
         int rcver = TCN_REQUIRED_MAJOR * 1000 + TCN_RECOMMENDED_MINOR * 100 + TCN_RECOMMENDED_PV;
 
-        if (aprInitialized) {
+        if (aprInitialized) {//如果apr库已经初始化完成 直接返回
             return;
         }
+
+        //设置aprInitialized 设置apr库已经初始化完成
         aprInitialized = true;
 
         try {
@@ -207,6 +238,8 @@ public class AprLifecycleListener
                         lnfe.getLibraryNames(), System.getProperty("java.library.path"),
                         lnfe.getMessage()), lnfe);
             }
+
+            //初始化的时候需要记录的消息 The Apache Tomcat Native library which allows using OpenSSL was not found on the java.library.path: [{0}]
             initInfoLogMessages.add(sm.getString("aprListener.aprInit",
                     System.getProperty("java.library.path")));
             return;

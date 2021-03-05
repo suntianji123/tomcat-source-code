@@ -24,12 +24,7 @@ import org.apache.tomcat.util.digester.RuleSetBase;
 
 
 /**
- * <p><strong>RuleSet</strong> for processing the contents of a
- * Engine definition element.  This <code>RuleSet</code> does NOT include
- * any rules for nested Host elements, which should be added via instances of
- * <code>HostRuleSet</code>.</p>
- *
- * @author Craig R. McClanahan
+ * Server/Service/Engine子标签集合器
  */
 @SuppressWarnings("deprecation")
 public class EngineRuleSet extends RuleSetBase {
@@ -39,7 +34,7 @@ public class EngineRuleSet extends RuleSetBase {
 
 
     /**
-     * The matching pattern prefix to use for recognizing our elements.
+     * 父标签 ： Server/Service/
      */
     protected final String prefix;
 
@@ -83,14 +78,20 @@ public class EngineRuleSet extends RuleSetBase {
     @Override
     public void addRuleInstances(Digester digester) {
 
+        //解析Server/Service/Engine标签  创建StandardEngine对象
         digester.addObjectCreate(prefix + "Engine",
                                  "org.apache.catalina.core.StandardEngine",
                                  "className");
+        //设置StandardEngine对象的属性值
         digester.addSetProperties(prefix + "Engine");
+
+        //给当前StandardEngine容器对象 设置生命周期监听器 如果标签的engineConfigClass属性 设置了值 将使用这个类作为生命周期监听器
+        //否则 使用listenerClass默认的监听器作为标签容器对象的生命周期监听器
         digester.addRule(prefix + "Engine",
                          new LifecycleListenerRule
                          ("org.apache.catalina.startup.EngineConfig",
                           "engineConfigClass"));
+        //将StandardEngine作为参数 执行StandardService的setContainer方法
         digester.addSetNext(prefix + "Engine",
                             "setContainer",
                             "org.apache.catalina.Engine");
@@ -114,6 +115,7 @@ public class EngineRuleSet extends RuleSetBase {
                             "org.apache.catalina.LifecycleListener");
 
 
+        //添加解析Server/Service/Engine/Realm标签的解析器
         digester.addRuleSet(new RealmRuleSet(prefix + "Engine/"));
 
         digester.addObjectCreate(prefix + "Engine/Valve",

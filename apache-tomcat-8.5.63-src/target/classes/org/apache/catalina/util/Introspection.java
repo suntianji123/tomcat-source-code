@@ -29,9 +29,9 @@ import org.apache.juli.logging.Log;
 import org.apache.tomcat.util.ExceptionUtils;
 import org.apache.tomcat.util.res.StringManager;
 
+
 /**
- * Provides introspection utilities that either require knowledge of Tomcat
- * internals or are solely used by Tomcat internals.
+ * 内省类
  */
 public class Introspection {
 
@@ -137,13 +137,10 @@ public class Introspection {
 
 
     /**
-     * Attempt to load a class using the given Container's class loader. If the
-     * class cannot be loaded, a debug level log message will be written to the
-     * Container's log and null will be returned.
-     * @param context The class loader of this context will be used to attempt
-     *  to load the class
-     * @param className The class name
-     * @return the loaded class or <code>null</code> if loading failed
+     * 加载class类
+     * @param context 上下文容器对象
+     * @param className class类的全类名
+     * @return
      */
     public static Class<?> loadClass(Context context, String className) {
         ClassLoader cl = context.getLoader().getClassLoader();

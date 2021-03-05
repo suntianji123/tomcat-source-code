@@ -201,8 +201,7 @@ public class Digester extends DefaultHandler2 {
     protected EntityResolver entityResolver;
 
     /**
-     * The URLs of entityValidator that have been registered, keyed by the public
-     * identifier that corresponds.
+     * 实体校验器
      */
     protected HashMap<String, String> entityValidator = new HashMap<>();
 
@@ -921,16 +920,11 @@ public class Digester extends DefaultHandler2 {
 
 
     /**
-     * Process notification of the end of an XML element being reached.
-     *
-     * @param namespaceURI - The Namespace URI, or the empty string if the
-     *   element has no Namespace URI or if Namespace processing is not
-     *   being performed.
-     * @param localName - The local name (without prefix), or the empty
-     *   string if Namespace processing is not being performed.
-     * @param qName - The qualified XML 1.0 name (with prefix), or the
-     *   empty string if qualified names are not available.
-     * @exception SAXException if a parsing error is to be reported
+     * 结束标签的处理方法
+     * @param namespaceURI 命名空间
+     * @param localName 本地名
+     * @param qName 标签名
+     * @throws SAXException
      */
     @Override
     public void endElement(String namespaceURI, String localName, String qName)
@@ -938,7 +932,7 @@ public class Digester extends DefaultHandler2 {
 
         boolean debug = log.isDebugEnabled();
 
-        if (debug) {
+        if (debug) {//打印日志
             if (saxLog.isDebugEnabled()) {
                 saxLog.debug("endElement(" + namespaceURI + "," + localName + "," + qName + ")");
             }
@@ -946,26 +940,28 @@ public class Digester extends DefaultHandler2 {
             log.debug("  bodyText='" + bodyText + "'");
         }
 
-        // Parse system properties
+        // 更新bodyText
         bodyText = updateBodyText(bodyText);
 
         // the actual element name is either in localName or qName, depending
         // on whether the parser is namespace aware
         String name = localName;
         if ((name == null) || (name.length() < 1)) {
+            //标签名
             name = qName;
         }
 
-        // Fire "body" events for all relevant rules
+        //获取当前标签的规则里诶包
         List<Rule> rules = matches.pop();
         if ((rules != null) && (rules.size() > 0)) {
             String bodyText = this.bodyText.toString().intern();
-            for (Rule value : rules) {
+            for (Rule value : rules) {//遍历规则对象
                 try {
                     Rule rule = value;
                     if (debug) {
                         log.debug("  Fire body() for " + rule);
                     }
+                    //调用规则的body方法
                     rule.body(namespaceURI, name, bodyText);
                 } catch (Exception e) {
                     log.error("Body event threw exception", e);
@@ -984,18 +980,20 @@ public class Digester extends DefaultHandler2 {
             }
         }
 
-        // Recover the body text from the surrounding element
+        //去除当前标签对象的bodyText
         bodyText = bodyTexts.pop();
 
         // Fire "end" events for all relevant rules in reverse order
         if (rules != null) {
-            for (int i = 0; i < rules.size(); i++) {
+            for (int i = 0; i < rules.size(); i++) {//遍历规则里诶包
                 int j = (rules.size() - i) - 1;
                 try {
+                    //从后往前遍历规则
                     Rule rule = rules.get(j);
                     if (debug) {
                         log.debug("  Fire end() for " + rule);
                     }
+                    //调用规则的end方法 将当前标签对象设置到父标签对象的相应属性上
                     rule.end(namespaceURI, name);
                 } catch (Exception e) {
                     log.error("End event threw exception", e);
@@ -1007,7 +1005,7 @@ public class Digester extends DefaultHandler2 {
             }
         }
 
-        // Recover the previous match expression
+        // 将match继续移动到父级别标签
         int slash = match.lastIndexOf('/');
         if (slash >= 0) {
             match = match.substring(0, slash);
@@ -1517,31 +1515,17 @@ public class Digester extends DefaultHandler2 {
 
 
     /**
-     * <p>Register the specified DTD URL for the specified public identifier.
-     * This must be called before the first call to <code>parse()</code>.
-     * </p><p>
-     * <code>Digester</code> contains an internal <code>EntityResolver</code>
-     * implementation. This maps <code>PUBLICID</code>'s to URLs
-     * (from which the resource will be loaded). A common use case for this
-     * method is to register local URLs (possibly computed at runtime by a
-     * classloader) for DTDs. This allows the performance advantage of using
-     * a local version without having to ensure every <code>SYSTEM</code>
-     * URI on every processed xml document is local. This implementation provides
-     * only basic functionality. If more sophisticated features are required,
-     * using {@link #setEntityResolver} to set a custom resolver is recommended.
-     * </p><p>
-     * <strong>Note:</strong> This method will have no effect when a custom
-     * <code>EntityResolver</code> has been set. (Setting a custom
-     * <code>EntityResolver</code> overrides the internal implementation.)
-     * </p>
-     * @param publicId Public identifier of the DTD to be resolved
-     * @param entityURL The URL to use for reading this DTD
+     * 注册实体校验器
+     * @param publicId 公共id
+     * @param entityURL 校验文件的url
      */
     public void register(String publicId, String entityURL) {
 
         if (log.isDebugEnabled()) {
             log.debug("register('" + publicId + "', '" + entityURL + "'");
         }
+
+        //将公共id放入校验文件的url
         entityValidator.put(publicId, entityURL);
 
     }
@@ -1566,13 +1550,15 @@ public class Digester extends DefaultHandler2 {
 
 
     /**
-     * Register a set of Rule instances defined in a RuleSet.
-     *
-     * @param ruleSet The RuleSet instance to configure from
+     * 添加规则集合对象
+     * @param ruleSet 规则集合对象
      */
     public void addRuleSet(RuleSet ruleSet) {
 
+        //获取命名空间
         String oldNamespaceURI = getRuleNamespaceURI();
+
+        //获取规则集合命名空间
         @SuppressWarnings("deprecation")
         String newNamespaceURI = ruleSet.getNamespaceURI();
         if (log.isDebugEnabled()) {
@@ -1583,6 +1569,7 @@ public class Digester extends DefaultHandler2 {
             }
         }
         setRuleNamespaceURI(newNamespaceURI);
+        //设置规则集合对象的规则来源对象
         ruleSet.addRuleInstances(this);
         setRuleNamespaceURI(oldNamespaceURI);
     }
@@ -1651,11 +1638,9 @@ public class Digester extends DefaultHandler2 {
     }
 
     /**
-     * Add an "object create" rule for the specified parameters.
-     *
-     * @param pattern Element matching pattern
-     * @param className Java class name to be created
-     * @see ObjectCreateRule
+     * 添加创建对象的规则
+     * @param pattern 标签
+     * @param className 创建对象的class全类名
      */
     public void addObjectCreate(String pattern, String className) {
 
@@ -1788,15 +1773,16 @@ public class Digester extends DefaultHandler2 {
 
 
     /**
-     * Push a new object onto the top of the object stack.
-     *
-     * @param object The new object
+     * 向对象栈中添加一个对象
+     * @param object 对象
      */
     public void push(Object object) {
-
+        //栈中没有对象 设置根对象
         if (stack.size() == 0) {
             root = object;
         }
+
+        //向栈中添加一个对象
         stack.push(object);
 
     }
@@ -2004,9 +1990,9 @@ public class Digester extends DefaultHandler2 {
 
 
     /**
-     * Return a new StringBuilder containing the same contents as the
-     * input buffer, except that data of form ${varname} have been
-     * replaced by the value of that var as defined in the system property.
+     * 更新当前标签的bodyText
+     * @param bodyText 当前标签的StringBuilder对象
+     * @return
      */
     private StringBuilder updateBodyText(StringBuilder bodyText) {
         String in = bodyText.toString();

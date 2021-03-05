@@ -44,12 +44,7 @@ import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 
 /**
- * Standard implementation of the <b>Engine</b> interface.  Each
- * child container must be a Host implementation to process the specific
- * fully qualified host name of that virtual host. <br>
- * You can set the jvmRoute direct or with the System.property <b>jvmRoute</b>.
- *
- * @author Craig R. McClanahan
+ * 标准的引擎类
  */
 public class StandardEngine extends ContainerBase implements Engine {
 
@@ -59,11 +54,12 @@ public class StandardEngine extends ContainerBase implements Engine {
 
 
     /**
-     * Create a new StandardEngine component with the default basic Valve.
+     * 实例化标准的引擎对象
      */
     public StandardEngine() {
 
         super();
+        //设置管道的基本值对象
         pipeline.setBasic(new StandardEngineValve());
         /* Set the jmvRoute using the system property jvmRoute */
         try {
@@ -81,20 +77,18 @@ public class StandardEngine extends ContainerBase implements Engine {
 
 
     /**
-     * Host name to use when no server host, or an unknown host,
-     * is specified in the request.
+     * 默认的主机地址 默认为localhost
      */
     private String defaultHost = null;
 
 
     /**
-     * The <code>Service</code> that owns this Engine, if any.
+     * 引擎的服务对象
      */
     private Service service = null;
 
     /**
-     * The JVM Route ID for this Tomcat instance. All Route ID's must be unique
-     * across the cluster.
+     * jvm路径id
      */
     private String jvmRouteId;
 
@@ -115,13 +109,18 @@ public class StandardEngine extends ContainerBase implements Engine {
      */
     @Override
     public Realm getRealm() {
+        //获取引擎的领域
         Realm configured = super.getRealm();
         // If no set realm has been called - default to NullRealm
         // This can be overridden at engine, context and host level
-        if (configured == null) {
+        if (configured == null) {//引擎没有设置领域
+            //实例化 一个空的领域
             configured = new NullRealm();
+            //将空的领域设置到引擎容器
             this.setRealm(configured);
         }
+
+        //返回配置的领域
         return configured;
     }
 
@@ -136,22 +135,25 @@ public class StandardEngine extends ContainerBase implements Engine {
 
 
     /**
-     * Set the default host.
-     *
-     * @param host The new default host
+     * 设置默认的主机地址
+     * @param host 主机地址
      */
     @Override
     public void setDefaultHost(String host) {
-
+        //保留原始的主机地址
         String oldDefaultHost = this.defaultHost;
-        if (host == null) {
+        if (host == null) {//新的主机地址为null
+            //设置默认的主机地址为null
             this.defaultHost = null;
         } else {
+            //将地址转为小写
             this.defaultHost = host.toLowerCase(Locale.ENGLISH);
         }
-        if (getState().isAvailable()) {
+        if (getState().isAvailable()) {//如果引擎的状态为可用
             service.getMapper().setDefaultHostName(host);
         }
+
+        //下发设置默认的主机地址事件
         support.firePropertyChange("defaultHost", oldDefaultHost,
                                    this.defaultHost);
 
@@ -159,13 +161,12 @@ public class StandardEngine extends ContainerBase implements Engine {
 
 
     /**
-     * Set the cluster-wide unique identifier for this Engine.
-     * This value is only useful in a load-balancing scenario.
-     * <p>
-     * This property should not be changed once it is set.
+     * 设置jvm路径
+     * @param routeId 路径id
      */
     @Override
     public void setJvmRoute(String routeId) {
+        //设置jvm路径id
         jvmRouteId = routeId;
     }
 
@@ -203,15 +204,14 @@ public class StandardEngine extends ContainerBase implements Engine {
 
 
     /**
-     * Add a child Container, only if the proposed child is an implementation
-     * of Host.
+     * 添加引擎容器的子容器对象 比如添加StandardHost对象
+     * @param child 子容器对象
      *
-     * @param child Child container to be added
      */
     @Override
     public void addChild(Container child) {
 
-        if (!(child instanceof Host))
+        if (!(child instanceof Host))//如果child不是Host类型
             throw new IllegalArgumentException
                 (sm.getString("standardEngine.notHost"));
         super.addChild(child);
@@ -234,21 +234,26 @@ public class StandardEngine extends ContainerBase implements Engine {
     }
 
 
+    /**
+     * 初始化引擎对象
+     * 如果引擎容器对象没有设置Realm领域 实例化一个空的领域对象 设置给引擎容器
+     * 将当前引擎对象包装为动态的MBean对象 注册到MBeanServer仓库 索引名为type=enginer
+     * @throws LifecycleException
+     */
     @Override
     protected void initInternal() throws LifecycleException {
         // Ensure that a Realm is present before any attempt is made to start
         // one. This will create the default NullRealm if necessary.
         getRealm();
+
+        //将当前引擎对象包装为动态的MBean对象 注册到MBeanServer仓库 索引名type=enginer
         super.initInternal();
     }
 
 
     /**
-     * Start this component and implement the requirements
-     * of {@link org.apache.catalina.util.LifecycleBase#startInternal()}.
-     *
-     * @exception LifecycleException if this component detects a fatal error
-     *  that prevents this component from being used
+     * 启动方法
+     * @throws LifecycleException
      */
     @Override
     protected synchronized void startInternal() throws LifecycleException {

@@ -200,6 +200,12 @@ public final class IntrospectionUtils {
         return false;
     }
 
+    /**
+     * 获取某个对象的某个属性名 比如获取StandardEngine的engineConfigClass属性值
+     * @param o 对象
+     * @param name 属性名
+     * @return
+     */
     public static Object getProperty(Object o, String name) {
         String getter = "get" + capitalize(name);
         String isGetter = "is" + capitalize(name);
@@ -444,9 +450,19 @@ public final class IntrospectionUtils {
         return null;
     }
 
+    /**
+     * 执行某个对象的某个方法
+     * @param target 目标对象
+     * @param methodN 对象的方法名
+     * @param param1 执行方法的参数值
+     * @param typeParam1 执行方法的参数类型
+     * @param cl 类加载器
+     * @return
+     * @throws Exception
+     */
     public static Object callMethod1(Object target, String methodN,
             Object param1, String typeParam1, ClassLoader cl) throws Exception {
-        if (target == null || param1 == null) {
+        if (target == null || param1 == null) {//目标对象为null 或者执行方法的参数为null 直接返回
             throw new IllegalArgumentException(
                     "IntrospectionUtils: Assert: Illegal params " +
                     target + " " + param1);
@@ -456,16 +472,21 @@ public final class IntrospectionUtils {
                     target.getClass().getName() + " " +
                     param1.getClass().getName() + " " + typeParam1);
 
+        //实例化一个参数类型数组
         Class<?> params[] = new Class[1];
-        if (typeParam1 == null)
+        if (typeParam1 == null)//参数类型为nulll
+            //设置参数类型数组第0个元素为参数的class对象
             params[0] = param1.getClass();
         else
+            //设置参数类型数组第0个元素为加载的class对象
             params[0] = cl.loadClass(typeParam1);
+        //查找目标方法
         Method m = findMethod(target.getClass(), methodN, params);
-        if (m == null)
+        if (m == null)//目标方法不存在 抛出异常
             throw new NoSuchMethodException(target.getClass().getName() + " "
                     + methodN);
         try {
+            //执行目标方法  传入参数
             return m.invoke(target, new Object[] { param1 });
         } catch (InvocationTargetException ie) {
             ExceptionUtils.handleThrowable(ie.getCause());

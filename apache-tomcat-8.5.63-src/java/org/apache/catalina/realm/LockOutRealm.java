@@ -32,16 +32,7 @@ import org.ietf.jgss.GSSException;
 import org.ietf.jgss.GSSName;
 
 /**
- * This class extends the CombinedRealm (hence it can wrap other Realms) to
- * provide a user lock out mechanism if there are too many failed
- * authentication attempts in a given period of time. To ensure correct
- * operation, there is a reasonable degree of synchronisation in this Realm.
- * This Realm does not require modification to the underlying Realms or the
- * associated user storage mechanisms. It achieves this by recording all failed
- * logins, including those for users that do not exist. To prevent a DOS by
- * deliberating making requests with invalid users (and hence causing this cache
- * to grow) the size of the list of users that have failed authentication is
- * limited.
+ * 锁定领域标签对象类
  */
 public class LockOutRealm extends CombinedRealm {
 
@@ -79,27 +70,27 @@ public class LockOutRealm extends CombinedRealm {
     protected int cacheRemovalWarningTime = 3600;
 
     /**
-     * Users whose last authentication attempt failed. Entries will be ordered
-     * in access order from least recent to most recent.
+     * 失败记录列表
      */
     protected Map<String,LockRecord> failedUsers = null;
 
 
     /**
-     * Prepare for the beginning of active use of the public methods of this
-     * component and implement the requirements of
-     * {@link org.apache.catalina.util.LifecycleBase#startInternal()}.
-     *
-     * @exception LifecycleException if this component detects a fatal error
-     *  that prevents this component from being used
+     * 启动领域方法
+     * @throws LifecycleException
      */
     @Override
     protected synchronized void startInternal() throws LifecycleException {
-        // Configure the list of failed users to delete the oldest entry once it
-        // exceeds the specified size
+        //实例化失败记录列表
         failedUsers = new LinkedHashMap<String, LockRecord>(cacheSize, 0.75f,
                 true) {
             private static final long serialVersionUID = 1L;
+
+            /**
+             * 移除实体方法
+             * @param eldest 实体对象
+             * @return
+             */
             @Override
             protected boolean removeEldestEntry(
                     Map.Entry<String, LockRecord> eldest) {

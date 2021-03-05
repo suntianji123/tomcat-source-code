@@ -34,24 +34,20 @@ import org.apache.naming.ContextBindings;
 import org.apache.tomcat.util.ExceptionUtils;
 
 /**
- * Implementation of {@link org.apache.catalina.Realm} that is based on an
- * implementation of {@link UserDatabase} made available through the JNDI
- * resources configured for this instance of Catalina. Set the
- * <code>resourceName</code> parameter to the JNDI resources name for the
- * configured instance of <code>UserDatabase</code> that we should consult.
- *
- * @author Craig R. McClanahan
- * @since 4.1
+ * 用户数据库领域类
  */
 public class UserDatabaseRealm extends RealmBase {
 
     // ----------------------------------------------------- Instance Variables
 
     /**
-     * The <code>UserDatabase</code> we will use to authenticate users and
-     * identify associated roles.
+     * 用户数据库  单例MemoryUserDatabase对象
      */
     protected volatile UserDatabase database = null;
+
+    /**
+     * 访问database锁对象
+     */
     private final Object databaseLock = new Object();
 
     /**
@@ -63,8 +59,7 @@ public class UserDatabaseRealm extends RealmBase {
 
 
     /**
-     * The global JNDI name of the <code>UserDatabase</code> resource we will be
-     * utilizing.
+     * 资源名称
      */
     protected String resourceName = "UserDatabase";
 
@@ -86,10 +81,8 @@ public class UserDatabaseRealm extends RealmBase {
 
 
     /**
-     * Set the global JNDI name of the <code>UserDatabase</code> resource we
-     * will be using.
-     *
-     * @param resourceName The new global JNDI name
+     * 设置资源名称
+     * @param resourceName 资源名称
      */
     public void setResourceName(String resourceName) {
         this.resourceName = resourceName;
@@ -195,7 +188,7 @@ public class UserDatabaseRealm extends RealmBase {
     @Override
     public void backgroundProcess() {
         UserDatabase database = getUserDatabase();
-        if (database instanceof MemoryUserDatabase) {
+        if (database instanceof MemoryUserDatabase) {//内存数据库
             ((MemoryUserDatabase) database).backgroundProcess();
         }
     }
@@ -255,23 +248,28 @@ public class UserDatabaseRealm extends RealmBase {
     }
 
 
-    /*
-     * Can't do this in startInternal() with local JNDI as the local JNDI
-     * context won't be initialised at this point.
+    /**
+     * 获取用户数据库
+     * @return
      */
     private UserDatabase getUserDatabase() {
         // DCL so database MUST be volatile
         if (database == null) {
-            synchronized (databaseLock) {
-                if (database == null) {
+            synchronized (databaseLock) {//打开访问database的锁
+                if (database == null) {//用户数据库为nulll
                     try {
+
+                        //NamingContext对象
                         Context context = null;
                         if (localJndiResource) {
                             context = ContextBindings.getClassLoader();
                             context = (Context) context.lookup("comp/env");
                         } else {
+                            //获取StandardServer的NamingContext 命名上下文对象
                             context = getServer().getGlobalNamingContext();
                         }
+
+                        //根据注册到NamingContext的ReferenceRef对象  调用工厂方法 实例化一个MemeoryDatabase数据库对象
                         database = (UserDatabase) context.lookup(resourceName);
                     } catch (Throwable e) {
                         ExceptionUtils.handleThrowable(e);
@@ -287,12 +285,17 @@ public class UserDatabaseRealm extends RealmBase {
 
     // ------------------------------------------------------ Lifecycle Methods
 
+    /**
+     * 启动生命周期领域
+     * @throws LifecycleException
+     */
     @Override
     protected void startInternal() throws LifecycleException {
         // If the JNDI resource is global, check it here and fail the context
         // start if it is not valid. Local JNDI resources can't be validated
         // this way because the JNDI context isn't available at Realm start.
         if (!localJndiResource) {
+            //获取用户数据库
             UserDatabase database = getUserDatabase();
             if (database == null) {
                 throw new LifecycleException(sm.getString("userDatabaseRealm.noDatabase", resourceName));

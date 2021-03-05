@@ -19,7 +19,7 @@ package org.apache.naming;
 import java.util.Hashtable;
 
 /**
- * Handles the access control on the JNDI contexts.
+ * 上下访问控制器
  *
  * @author Remy Maucherat
  */
@@ -28,13 +28,13 @@ public class ContextAccessController {
     // -------------------------------------------------------------- Variables
 
     /**
-     * Catalina context names on which writing is not allowed.
+     * 只读的Context对象列表
      */
     private static final Hashtable<Object,Object> readOnlyContexts = new Hashtable<>();
 
 
     /**
-     * Security tokens repository.
+     * 访问某个资源目录与安全令牌的映射表
      */
     private static final Hashtable<Object,Object> securityTokens = new Hashtable<>();
 
@@ -42,19 +42,22 @@ public class ContextAccessController {
     // --------------------------------------------------------- Public Methods
 
     /**
-     * Set a security token for a Catalina context. Can be set only once.
-     *
-     * @param name Name of the Catalina context
-     * @param token Security token
+     * 设置反问某个命名资源目录的安全令牌
+     * @param name 资源目录
+     * @param token 令牌对象
      */
     public static void setSecurityToken(Object name, Object token) {
+        //获取系统安全管理器
         SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
             sm.checkPermission(new RuntimePermission(
                     ContextAccessController.class.getName()
                             + ".setSecurityToken"));
         }
+
+        //令牌表中没有设置过这个令牌
         if ((!securityTokens.containsKey(name)) && (token != null)) {
+            //将目录对应的秘钥对象 返回映射表中
             securityTokens.put(name, token);
         }
     }
@@ -74,27 +77,24 @@ public class ContextAccessController {
 
 
     /**
-     * Check a submitted security token.
-     *
-     * @param name Name of the Catalina context
-     * @param token Submitted security token
-     *
-     * @return <code>true</code> if the submitted token is equal to the token
-     *         in the repository or if no token is present in the repository.
-     *         Otherwise, <code>false</code>
+     * 检查安全令牌表中是否存在 指定对象的令牌对象
+     * @param name 指定对象 比如StandardServer
+     * @param token 秘钥对象
+     * @return
      */
     public static boolean checkSecurityToken
         (Object name, Object token) {
+        //根据对象获取秘钥对象
         Object refToken = securityTokens.get(name);
+        //秘钥对象存在 并且不能为null
         return (refToken == null || refToken.equals(token));
     }
 
 
     /**
-     * Allow writing to a context.
-     *
-     * @param name Name of the Catalina context
-     * @param token Security token
+     * 移除只读的秘钥对象
+     * @param name 名称
+     * @param token 秘钥对象
      */
     public static void setWritable(Object name, Object token) {
         if (checkSecurityToken(name, token))
@@ -113,11 +113,9 @@ public class ContextAccessController {
 
 
     /**
-     * Is the context is writable?
-     *
-     * @param name Name of the Catalina context
-     *
-     * @return <code>true</code> if it is writable, otherwise <code>false</code>
+     * 判断Context对象 是否为只读 不能向其中绑定对象
+     * @param name 上下文名称
+     * @return
      */
     public static boolean isWritable(Object name) {
         return !(readOnlyContexts.containsKey(name));

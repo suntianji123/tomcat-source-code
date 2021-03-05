@@ -27,9 +27,7 @@ import javax.naming.NamingEnumeration;
 import javax.naming.NamingException;
 
 /**
- * Naming enumeration implementation.
- *
- * @author Remy Maucherat
+ * 命名Context绑定枚举类
  */
 public class NamingContextBindingsEnumeration
     implements NamingEnumeration<Binding> {
@@ -38,9 +36,15 @@ public class NamingContextBindingsEnumeration
     // ----------------------------------------------------------- Constructors
 
 
+    /**
+     * 实例化一个命名Context绑定枚举类
+     */
     public NamingContextBindingsEnumeration(Iterator<NamingEntry> entries,
             Context ctx) {
+        //命名实体迭代器对象
         iterator = entries;
+
+        //NamingContext对象
         this.ctx = ctx;
     }
 
@@ -48,13 +52,13 @@ public class NamingContextBindingsEnumeration
 
 
     /**
-     * Underlying enumeration.
+     * 名字实体迭代器
      */
     protected final Iterator<NamingEntry> iterator;
 
 
     /**
-     * The context for which this enumeration is being generated.
+     * NamingContext对象
      */
     private final Context ctx;
 
@@ -63,7 +67,9 @@ public class NamingContextBindingsEnumeration
 
 
     /**
-     * Retrieves the next element in the enumeration.
+     * 獲取NamingEntry迭代器的下一個元素
+     * @return
+     * @throws NamingException
      */
     @Override
     public Binding next()
@@ -73,11 +79,14 @@ public class NamingContextBindingsEnumeration
 
 
     /**
-     * Determines whether there are any more elements in the enumeration.
+     * 判断是否还有下一个名字实体对象
+     * @return
+     * @throws NamingException
      */
     @Override
     public boolean hasMore()
         throws NamingException {
+        //实体列表迭代器有下一个元素
         return iterator.hasNext();
     }
 
@@ -106,14 +115,22 @@ public class NamingContextBindingsEnumeration
         }
     }
 
+    /**
+     * 获取下一个NamingEntry对应的Bingding对象
+     * @return
+     * @throws NamingException
+     */
     private Binding nextElementInternal() throws NamingException {
+        //获取命名实体对象
         NamingEntry entry = iterator.next();
+        //结果
         Object value;
 
         // If the entry is a reference, resolve it
         if (entry.type == NamingEntry.REFERENCE
-                || entry.type == NamingEntry.LINK_REF) {
+                || entry.type == NamingEntry.LINK_REF) {//引用类型
             try {
+
                 value = ctx.lookup(new CompositeName(entry.name));
             } catch (NamingException e) {
                 throw e;

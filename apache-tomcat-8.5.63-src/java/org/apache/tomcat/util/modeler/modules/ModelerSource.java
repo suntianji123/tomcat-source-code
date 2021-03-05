@@ -24,20 +24,23 @@ import org.apache.tomcat.util.modeler.Registry;
 import org.apache.tomcat.util.res.StringManager;
 
 /**
- * Source for descriptor data. More sources can be added.
+ * 建模资源类
  */
 public abstract class ModelerSource {
     protected static final StringManager sm = StringManager.getManager(Registry.class);
+
+    /**
+     * url资源对象
+     */
     protected Object source;
 
     /**
-     * Load data, returns a list of items.
-     *
-     * @param registry The registry
-     * @param type The bean registry type
-     * @param source Introspected object or some other source
-     * @return a list of object names
-     * @throws Exception Error loading descriptors
+     * 从url资源中加载描述器
+     * @param registry 登记器对象
+     * @param type 类型
+     * @param source url资源对象
+     * @return
+     * @throws Exception
      */
     public abstract List<ObjectName> loadDescriptors(Registry registry,
             String type, Object source) throws Exception;

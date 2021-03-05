@@ -66,65 +66,8 @@ import org.apache.tomcat.util.ExceptionUtils;
 import org.apache.tomcat.util.MultiThrowable;
 import org.apache.tomcat.util.res.StringManager;
 
-
 /**
- * Abstract implementation of the <b>Container</b> interface, providing common
- * functionality required by nearly every implementation.  Classes extending
- * this base class must may implement a replacement for <code>invoke()</code>.
- * <p>
- * All subclasses of this abstract base class will include support for a
- * Pipeline object that defines the processing to be performed for each request
- * received by the <code>invoke()</code> method of this class, utilizing the
- * "Chain of Responsibility" design pattern.  A subclass should encapsulate its
- * own processing functionality as a <code>Valve</code>, and configure this
- * Valve into the pipeline by calling <code>setBasic()</code>.
- * <p>
- * This implementation fires property change events, per the JavaBeans design
- * pattern, for changes in singleton properties.  In addition, it fires the
- * following <code>ContainerEvent</code> events to listeners who register
- * themselves with <code>addContainerListener()</code>:
- * <table border=1>
- *   <caption>ContainerEvents fired by this implementation</caption>
- *   <tr>
- *     <th>Type</th>
- *     <th>Data</th>
- *     <th>Description</th>
- *   </tr>
- *   <tr>
- *     <td><code>addChild</code></td>
- *     <td><code>Container</code></td>
- *     <td>Child container added to this Container.</td>
- *   </tr>
- *   <tr>
- *     <td><code>{@link #getPipeline() pipeline}.addValve</code></td>
- *     <td><code>Valve</code></td>
- *     <td>Valve added to this Container.</td>
- *   </tr>
- *   <tr>
- *     <td><code>removeChild</code></td>
- *     <td><code>Container</code></td>
- *     <td>Child container removed from this Container.</td>
- *   </tr>
- *   <tr>
- *     <td><code>{@link #getPipeline() pipeline}.removeValve</code></td>
- *     <td><code>Valve</code></td>
- *     <td>Valve removed from this Container.</td>
- *   </tr>
- *   <tr>
- *     <td><code>start</code></td>
- *     <td><code>null</code></td>
- *     <td>Container was started.</td>
- *   </tr>
- *   <tr>
- *     <td><code>stop</code></td>
- *     <td><code>null</code></td>
- *     <td>Container was stopped.</td>
- *   </tr>
- * </table>
- * Subclasses that fire additional events should document them in the
- * class comments of the implementation class.
- *
- * @author Craig R. McClanahan
+ * 基本的容器对象
  */
 public abstract class ContainerBase extends LifecycleMBeanBase
         implements Container {
@@ -139,6 +82,9 @@ public abstract class ContainerBase extends LifecycleMBeanBase
      */
     protected class PrivilegedAddChild implements PrivilegedAction<Void> {
 
+        /**
+         * 子容器对象
+         */
         private final Container child;
 
         PrivilegedAddChild(Container child) {
@@ -158,13 +104,13 @@ public abstract class ContainerBase extends LifecycleMBeanBase
 
 
     /**
-     * The child Containers belonging to this Container, keyed by name.
+     * 容器中的子容器表
      */
     protected final HashMap<String, Container> children = new HashMap<>();
 
 
     /**
-     * The processor delay for this component.
+     * 组件的处理延时时间
      */
     protected int backgroundProcessorDelay = -1;
 
@@ -197,13 +143,13 @@ public abstract class ContainerBase extends LifecycleMBeanBase
 
 
     /**
-     * The human-readable name of this Container.
+     * 容器名称
      */
     protected String name = null;
 
 
     /**
-     * The parent Container to which this Container is a child.
+     * 父容器对象
      */
     protected Container parent = null;
 
@@ -215,19 +161,19 @@ public abstract class ContainerBase extends LifecycleMBeanBase
 
 
     /**
-     * The Pipeline object with which this Container is associated.
+     * 管道对象
      */
     protected final Pipeline pipeline = new StandardPipeline(this);
 
 
     /**
-     * The Realm with which this Container is associated.
+     * 领域对象
      */
     private volatile Realm realm = null;
 
 
     /**
-     * Lock used to control access to the Realm.
+     * 访问领域对象的锁
      */
     private final ReadWriteLock realmLock = new ReentrantReadWriteLock();
 
@@ -276,6 +222,10 @@ public abstract class ContainerBase extends LifecycleMBeanBase
      * children associated with this container.
      */
     private int startStopThreads = 1;
+
+    /**
+     * 容器的启动 停止任务执行器
+     */
     protected ThreadPoolExecutor startStopExecutor;
 
 
@@ -350,7 +300,7 @@ public abstract class ContainerBase extends LifecycleMBeanBase
 
 
     /**
-     * Return the Logger for this Container.
+     * 获取容器的日志对象
      */
     @Override
     public Log getLogger() {
@@ -544,30 +494,26 @@ public abstract class ContainerBase extends LifecycleMBeanBase
 
 
     /**
-     * Set the parent Container to which this Container is being added as a
-     * child.  This Container may refuse to become attached to the specified
-     * Container by throwing an exception.
-     *
-     * @param container Container to which this Container is being added
+     * 设置容器的父容器
+     * @param container 父容器
      *  as a child
      *
-     * @exception IllegalArgumentException if this Container refuses to become
-     *  attached to the specified Container
      */
     @Override
     public void setParent(Container container) {
-
+        //获取原始的父容器对象
         Container oldParent = this.parent;
+        //当前容器的父容器为新的容器
         this.parent = container;
+        //下发容器的父容器变更事件
         support.firePropertyChange("parent", oldParent, this.parent);
 
     }
 
 
     /**
-     * Return the parent class loader (if any) for this web application.
-     * This call is meaningful only <strong>after</strong> a Loader has
-     * been configured.
+     * 获取父容器的class类加载器
+     * @return
      */
     @Override
     public ClassLoader getParentClassLoader() {
@@ -581,18 +527,16 @@ public abstract class ContainerBase extends LifecycleMBeanBase
 
 
     /**
-     * Set the parent class loader (if any) for this web application.
-     * This call is meaningful only <strong>before</strong> a Loader has
-     * been configured, and the specified value (if non-null) should be
-     * passed as an argument to the class loader constructor.
-     *
-     *
-     * @param parent The new parent class loader
+     *  设置父标签类加载器
+     * @param parent 父容器对象类加载器对象
      */
     @Override
     public void setParentClassLoader(ClassLoader parent) {
+        //原始父容器类加载器对象
         ClassLoader oldParentClassLoader = this.parentClassLoader;
+        //设置父类容器对象类加载器为指定的类加载器
         this.parentClassLoader = parent;
+        //下发 当前容易对象parentClassLoader属性改变事件
         support.firePropertyChange("parentClassLoader", oldParentClassLoader,
                                    this.parentClassLoader);
 
@@ -610,22 +554,24 @@ public abstract class ContainerBase extends LifecycleMBeanBase
 
 
     /**
-     * Return the Realm with which this Container is associated.  If there is
-     * no associated Realm, return the Realm associated with our parent
-     * Container (if any); otherwise return <code>null</code>.
+     * 获取容器对象的领域
+     * @return
      */
     @Override
     public Realm getRealm() {
-
+        //打开访问领域的读锁
         Lock l = realmLock.readLock();
+        //加锁
         l.lock();
         try {
-            if (realm != null)
+            if (realm != null)//领域不为null 直接返回
                 return realm;
-            if (parent != null)
+            if (parent != null)//父容器不为null
+                //返回父容器的领域对象
                 return parent.getRealm();
             return null;
         } finally {
+            //释放锁
             l.unlock();
         }
     }
@@ -642,20 +588,23 @@ public abstract class ContainerBase extends LifecycleMBeanBase
     }
 
     /**
-     * Set the Realm with which this Container is associated.
-     *
-     * @param realm The newly associated Realm
+     * 设置领域对象
+     * @param realm 领域对象
      */
     @Override
     public void setRealm(Realm realm) {
-
+        //获取写锁
         Lock l = realmLock.writeLock();
+        //打开锁
         l.lock();
         try {
             // Change components if necessary
+            //获取原始的领域对象
             Realm oldRealm = this.realm;
+            //新的领域对象与原始领域对象相同 直接返回
             if (oldRealm == realm)
                 return;
+            //设置领域对象
             this.realm = realm;
 
             // Stop the old component if necessary
@@ -669,7 +618,7 @@ public abstract class ContainerBase extends LifecycleMBeanBase
             }
 
             // Start the new component if necessary
-            if (realm != null)
+            if (realm != null)//设置领域的容器对象
                 realm.setContainer(this);
             if (getState().isAvailable() && (realm != null) &&
                 (realm instanceof Lifecycle)) {
@@ -680,7 +629,7 @@ public abstract class ContainerBase extends LifecycleMBeanBase
                 }
             }
 
-            // Report this property change to interested listeners
+            //下发引擎对象 realm属性改变事件
             support.firePropertyChange("realm", oldRealm, this.realm);
         } finally {
             l.unlock();
@@ -693,21 +642,9 @@ public abstract class ContainerBase extends LifecycleMBeanBase
 
 
     /**
-     * Add a new child Container to those associated with this Container,
-     * if supported.  Prior to adding this Container to the set of children,
-     * the child's <code>setParent()</code> method must be called, with this
-     * Container as an argument.  This method may thrown an
-     * <code>IllegalArgumentException</code> if this Container chooses not
-     * to be attached to the specified Container, in which case it is not added
+     * 向容器中添加子容器
+     * @param child 子容器
      *
-     * @param child New child Container to be added
-     *
-     * @exception IllegalArgumentException if this exception is thrown by
-     *  the <code>setParent()</code> method of the child Container
-     * @exception IllegalArgumentException if the new child does not have
-     *  a name unique from that of existing children of this Container
-     * @exception IllegalStateException if this Container does not support
-     *  child Containers
      */
     @Override
     public void addChild(Container child) {
@@ -720,16 +657,22 @@ public abstract class ContainerBase extends LifecycleMBeanBase
         }
     }
 
+    /**
+     * 容器中添加子容器方法
+     * @param child 子容器对象
+     */
     private void addChildInternal(Container child) {
 
         if( log.isDebugEnabled() )
             log.debug("Add child " + child + " " + this);
-        synchronized(children) {
+        synchronized(children) {//将子容器加锁
             if (children.get(child.getName()) != null)
                 throw new IllegalArgumentException("addChild:  Child name '" +
                                                    child.getName() +
                                                    "' is not unique");
+            //设置子容器的parent对象
             child.setParent(this);  // May throw IAE
+            //将子容器放入子容器表
             children.put(child.getName(), child);
         }
 
@@ -896,11 +839,8 @@ public abstract class ContainerBase extends LifecycleMBeanBase
 
 
     /**
-     * Start this component and implement the requirements
-     * of {@link org.apache.catalina.util.LifecycleBase#startInternal()}.
-     *
-     * @exception LifecycleException if this component detects a fatal error
-     *  that prevents this component from being used
+     * 启动容器
+     * @throws LifecycleException
      */
     @Override
     protected synchronized void startInternal() throws LifecycleException {
@@ -908,19 +848,24 @@ public abstract class ContainerBase extends LifecycleMBeanBase
         // Start our subordinate components, if any
         logger = null;
         getLogger();
+        //获取集群对象   默认为null
         Cluster cluster = getClusterInternal();
         if (cluster instanceof Lifecycle) {
             ((Lifecycle) cluster).start();
         }
+
+        //获取领域对象
         Realm realm = getRealmInternal();
-        if (realm instanceof Lifecycle) {
+        if (realm instanceof Lifecycle) {//如果领域是生命周期对象
+            //启动领域对象 设置UserDatabaseRealm的database属性为NamingContext中UserDatabase中ResourceRef生成的MemoryDatabase对象
             ((Lifecycle) realm).start();
         }
 
-        // Start our child containers, if any
+        // 获取所有的额子容器对象  StandardHost对象
         Container children[] = findChildren();
+        //异步操作列表
         List<Future<Void>> results = new ArrayList<>();
-        for (Container child : children) {
+        for (Container child : children) {//遍历每一个子容器对象 向启动停止执行器中添加一个启动子容器的方法
             results.add(startStopExecutor.submit(new StartChild(child)));
         }
 
@@ -928,6 +873,7 @@ public abstract class ContainerBase extends LifecycleMBeanBase
 
         for (Future<Void> result : results) {
             try {
+                //等待 任务子容器启动完成
                 result.get();
             } catch (Throwable e) {
                 log.error(sm.getString("containerBase.threadedStartFailed"), e);
@@ -1097,21 +1043,8 @@ public abstract class ContainerBase extends LifecycleMBeanBase
 
 
     /**
-     * Convenience method, intended for use by the digester to simplify the
-     * process of adding Valves to containers. See
-     * {@link Pipeline#addValve(Valve)} for full details. Components other than
-     * the digester should use {@link #getPipeline()}.{@link #addValve(Valve)} in case a
-     * future implementation provides an alternative method for the digester to
-     * use.
-     *
-     * @param valve Valve to be added
-     *
-     * @exception IllegalArgumentException if this Container refused to
-     *  accept the specified Valve
-     * @exception IllegalArgumentException if the specified Valve refuses to be
-     *  associated with this Container
-     * @exception IllegalStateException if the specified Valve is already
-     *  associated with a different Container
+     * 添加阀门对象
+     * @param valve 阀门对象
      */
     public synchronized void addValve(Valve valve) {
 
@@ -1399,8 +1332,14 @@ public abstract class ContainerBase extends LifecycleMBeanBase
 
     // ---------------------------- Inner classes used with start/stop Executor
 
+    /**
+     * 启动子容器的任务体
+     */
     private static class StartChild implements Callable<Void> {
 
+        /**
+         * 子容器对象 比如StandardHost对象
+         */
         private Container child;
 
         public StartChild(Container child) {

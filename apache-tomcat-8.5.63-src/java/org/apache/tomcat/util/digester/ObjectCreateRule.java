@@ -93,7 +93,6 @@ public class ObjectCreateRule extends Rule {
     @Override
     public void begin(String namespace, String name, Attributes attributes)
             throws Exception {
-
         //创建对象的class全路径
         String realClassName = className;
         if (attributeName != null) {//自定义的属性名

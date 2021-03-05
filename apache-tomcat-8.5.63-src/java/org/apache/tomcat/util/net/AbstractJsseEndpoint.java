@@ -34,6 +34,9 @@ import org.apache.tomcat.util.net.openssl.ciphers.Cipher;
 
 public abstract class AbstractJsseEndpoint<S> extends AbstractEndpoint<S> {
 
+    /**
+     * ssl证书实现器名称
+     */
     private String sslImplementationName = null;
     private int sniParseLimit = 64 * 1024;
 
@@ -44,6 +47,10 @@ public abstract class AbstractJsseEndpoint<S> extends AbstractEndpoint<S> {
     }
 
 
+    /**
+     * 设置ssl证书实现器名称
+     * @param s ssl证书实现器名称
+     */
     public void setSslImplementationName(String s) {
         this.sslImplementationName = s;
     }

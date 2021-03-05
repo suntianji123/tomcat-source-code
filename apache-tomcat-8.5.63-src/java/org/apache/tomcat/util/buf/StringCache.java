@@ -26,9 +26,7 @@ import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 
 /**
- * This class implements a String cache for ByteChunk and CharChunk.
- *
- * @author Remy Maucherat
+ * 字符串缓存类
  */
 public class StringCache {
 

@@ -96,13 +96,14 @@ public class CoyoteAdapter implements Adapter {
 
 
     /**
-     * Construct a new CoyoteProcessor associated with the specified connector.
-     *
-     * @param connector CoyoteConnector that owns this processor
+     * 实例化一个土狼适配器
+     * @param connector 连接器
      */
     public CoyoteAdapter(Connector connector) {
 
         super();
+
+        //设置连接器对象
         this.connector = connector;
 
     }
@@ -112,7 +113,7 @@ public class CoyoteAdapter implements Adapter {
 
 
     /**
-     * The CoyoteConnector with which this processor is associated.
+     * 连接器对象
      */
     private final Connector connector;
 
@@ -548,6 +549,10 @@ public class CoyoteAdapter implements Adapter {
     }
 
 
+    /**
+     * 获取适配器的domain领域 默认为Catalina
+     * @return
+     */
     @Override
     public String getDomain() {
         return connector.getDomain();

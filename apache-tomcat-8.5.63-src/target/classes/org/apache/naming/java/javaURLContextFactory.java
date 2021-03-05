@@ -76,7 +76,7 @@ public class javaURLContextFactory
 
 
     /**
-     * Crete a new Context's instance.
+     * 创建一个Context选择器对象
      */
     @SuppressWarnings("unchecked")
     @Override
@@ -92,7 +92,10 @@ public class javaURLContextFactory
 
 
     /**
-     * Get a new (writable) initial context.
+     * 创建Context对象 选择器
+     * @param environment 系统参数环境表
+     * @return
+     * @throws NamingException
      */
     @SuppressWarnings("unchecked")
     @Override

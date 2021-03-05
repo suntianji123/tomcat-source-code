@@ -27,13 +27,7 @@ import org.apache.juli.logging.Log;
 import org.apache.tomcat.util.res.StringManager;
 
 /**
- * Convenience base class for implementations of the <b>Valve</b> interface.
- * A subclass <strong>MUST</strong> implement an <code>invoke()</code>
- * method to provide the required functionality, and <strong>MAY</strong>
- * implement the <code>Lifecycle</code> interface to provide configuration
- * management and lifecycle support.
- *
- * @author Craig R. McClanahan
+ * 基本阀门类
  */
 public abstract class ValveBase extends LifecycleMBeanBase implements Contained, Valve {
 
@@ -47,6 +41,10 @@ public abstract class ValveBase extends LifecycleMBeanBase implements Contained,
     }
 
 
+    /**
+     * 实例化一个基本阀门类
+     * @param asyncSupported 是否支持异步 默认为true
+     */
     public ValveBase(boolean asyncSupported) {
         this.asyncSupported = asyncSupported;
     }
@@ -55,7 +53,7 @@ public abstract class ValveBase extends LifecycleMBeanBase implements Contained,
     //------------------------------------------------------ Instance Variables
 
     /**
-     * Does this valve support Servlet 3+ async requests?
+     * 是否基本异步
      */
     protected boolean asyncSupported;
 

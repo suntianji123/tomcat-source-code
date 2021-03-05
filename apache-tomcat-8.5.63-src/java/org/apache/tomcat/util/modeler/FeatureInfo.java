@@ -25,20 +25,27 @@ import javax.management.MBeanFeatureInfo;
 
 
 /**
- * <p>Convenience base class for <code>AttributeInfo</code> and
- * <code>OperationInfo</code> classes that will be used to collect configuration
- * information for the <code>ModelMBean</code> beans exposed for management.</p>
- *
- * @author Craig R. McClanahan
+ * 特征类
  */
 public class FeatureInfo implements Serializable {
     private static final long serialVersionUID = -911529176124712296L;
 
+    /**
+     * 描述
+     */
     protected String description = null;
+
+    /**
+     * 属性名
+     */
     protected String name = null;
+
+
     protected MBeanFeatureInfo info = null;
 
-    // all have type except Constructor
+    /**
+     * 属性class类型
+     */
     protected String type = null;
 
 
@@ -51,6 +58,10 @@ public class FeatureInfo implements Serializable {
         return this.description;
     }
 
+    /**
+     * 设置属性的描述
+     * @param description 描述信息
+     */
     public void setDescription(String description) {
         this.description = description;
     }
@@ -64,12 +75,17 @@ public class FeatureInfo implements Serializable {
         return this.name;
     }
 
+    /**
+     * 设置属性名
+     * @param name
+     */
     public void setName(String name) {
         this.name = name;
     }
 
     /**
-     * @return the fully qualified Java class name of this element.
+     * 设置属性的class全类名
+     * @return
      */
     public String getType() {
         return this.type;

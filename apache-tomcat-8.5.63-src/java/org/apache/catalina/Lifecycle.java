@@ -87,7 +87,7 @@ public interface Lifecycle {
 
 
     /**
-     * The LifecycleEvent type for the "component before init" event.
+     * 生命周期事件 before_init
      */
     public static final String BEFORE_INIT_EVENT = "before_init";
 
@@ -99,7 +99,7 @@ public interface Lifecycle {
 
 
     /**
-     * The LifecycleEvent type for the "component start" event.
+     * 开始事件
      */
     public static final String START_EVENT = "start";
 
@@ -117,7 +117,7 @@ public interface Lifecycle {
 
 
     /**
-     * The LifecycleEvent type for the "component stop" event.
+     * 结束事件
      */
     public static final String STOP_EVENT = "stop";
 

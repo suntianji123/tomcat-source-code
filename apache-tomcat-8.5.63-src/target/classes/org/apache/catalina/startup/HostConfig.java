@@ -73,11 +73,7 @@ import org.apache.tomcat.util.modeler.Registry;
 import org.apache.tomcat.util.res.StringManager;
 
 /**
- * Startup event listener for a <b>Host</b> that configures the properties
- * of that Host, and the associated defined contexts.
- *
- * @author Craig R. McClanahan
- * @author Remy Maucherat
+ * 主机配置生命周期监听器
  */
 public class HostConfig implements LifecycleListener {
 

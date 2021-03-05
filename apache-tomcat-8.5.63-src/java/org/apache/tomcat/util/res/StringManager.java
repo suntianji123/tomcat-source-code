@@ -26,59 +26,43 @@ import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 
 /**
- * An internationalization / localization helper class which reduces
- * the bother of handling ResourceBundles and takes care of the
- * common cases of message formatting which otherwise require the
- * creation of Object arrays and such.
- *
- * <p>The StringManager operates on a package basis. One StringManager
- * per package can be created and accessed via the getManager method
- * call.
- *
- * <p>The StringManager will look for a ResourceBundle named by
- * the package name given plus the suffix of "LocalStrings". In
- * practice, this means that the localized information will be contained
- * in a LocalStrings.properties file located in the package
- * directory of the class path.
- *
- * <p>Please see the documentation for java.util.ResourceBundle for
- * more information.
- *
- * @author James Duncan Davidson [duncan@eng.sun.com]
- * @author James Todd [gonzo@eng.sun.com]
- * @author Mel Martinez [mmartinez@g1440.com]
- * @see java.util.ResourceBundle
+ * 字符串管理器
  */
 public class StringManager {
 
+    /**
+     * 单个包名 对应的语言|字符串管理器表大小
+     */
     private static int LOCALE_CACHE_SIZE = 10;
 
     /**
-     * The ResourceBundle for this StringManager.
+     * 资源边界对象
      */
     private final ResourceBundle bundle;
+
+    /**
+     * 语言类型
+     */
     private final Locale locale;
 
 
     /**
-     * Creates a new StringManager for a given package. This is a
-     * private method and all access to it is arbitrated by the
-     * static getManager method call so that only one StringManager
-     * per package will be created.
-     *
-     * @param packageName Name of package to create StringManager for.
+     * 实例化一个字符串管理器
+     * @param packageName 字符串管理器所管理的包名
+     * @param locale 字符串管理器语言类型
      */
     private StringManager(String packageName, Locale locale) {
+        //拼接包名
         String bundleName = packageName + ".LocalStrings";
+        //资源边界对象
         ResourceBundle bnd = null;
         try {
-            // The ROOT Locale uses English. If English is requested, force the
-            // use of the ROOT Locale else incorrect results may be obtained if
-            // the system default locale is not English and translations are
-            // available for the system default locale.
+            //使用english语言
             if (locale.getLanguage().equals(Locale.ENGLISH.getLanguage())) {
+                //设置语言为root
                 locale = Locale.ROOT;
             }
+            //获取资源边界对象
             bnd = ResourceBundle.getBundle(bundleName, locale);
         } catch (MissingResourceException ex) {
             // Try from the current loader (that's the case for trusted apps)
@@ -93,9 +77,12 @@ public class StringManager {
                 }
             }
         }
+
+        //设置资源边界对象
         bundle = bnd;
         // Get the actual locale, which may be different from the requested one
         if (bundle != null) {
+            //获取本地语言对象
             Locale bundleLocale = bundle.getLocale();
             if (bundleLocale.equals(Locale.ROOT)) {
                 this.locale = Locale.ENGLISH;
@@ -152,23 +139,23 @@ public class StringManager {
 
 
     /**
-     * Get a string from the underlying resource bundle and format
-     * it with the given set of arguments.
-     *
-     * @param key  The key for the required message
-     * @param args The values to insert into the message
-     *
-     * @return The request string formatted with the provided arguments or the
-     *         key if the key was not found.
+     * 获取某个属性值
+     * @param key 属性
+     * @param args 值参数
+     * @return
      */
     public String getString(final String key, final Object... args) {
+        //获取属性值
         String value = getString(key);
-        if (value == null) {
+        if (value == null) {//属性值不存在 将属性key作为属性值
             value = key;
         }
 
+        //消息格式化
         MessageFormat mf = new MessageFormat(value);
+        //设置消息格式化的语言对象
         mf.setLocale(locale);
+        //格式化属性值
         return mf.format(args, new StringBuffer(), null).toString();
     }
 
@@ -182,24 +169,17 @@ public class StringManager {
         return locale;
     }
 
-
-    // --------------------------------------------------------------
-    // STATIC SUPPORT METHODS
-    // --------------------------------------------------------------
-
+    /**
+     * 包下对应的语言与字符串管理器map
+     */
     private static final Map<String, Map<Locale,StringManager>> managers =
             new Hashtable<>();
 
 
     /**
-     * Get the StringManager for a given class. The StringManager will be
-     * returned for the package in which the class is located. If a manager for
-     * that package already exists, it will be reused, else a new
-     * StringManager will be created and returned.
-     *
-     * @param clazz The class for which to retrieve the StringManager
-     *
-     * @return The instance associated with the package of the provide class
+     * 获取字符串资源管理器
+     * @param clazz
+     * @return
      */
     public static final StringManager getManager(Class<?> clazz) {
         return getManager(clazz.getPackage().getName());
@@ -207,14 +187,9 @@ public class StringManager {
 
 
     /**
-     * Get the StringManager for a particular package. If a manager for
-     * a package already exists, it will be reused, else a new
-     * StringManager will be created and returned.
-     *
-     * @param packageName The package name
-     *
-     * @return The instance associated with the given package and the default
-     *         Locale
+     * 获取某个包对应的字符串管理器
+     * @param packageName 包名
+     * @return
      */
     public static final StringManager getManager(String packageName) {
         return getManager(packageName, Locale.getDefault());
@@ -222,28 +197,18 @@ public class StringManager {
 
 
     /**
-     * Get the StringManager for a particular package and Locale. If a manager
-     * for a package/Locale combination already exists, it will be reused, else
-     * a new StringManager will be created and returned.
-     *
-     * @param packageName The package name
-     * @param locale      The Locale
-     *
-     * @return The instance associated with the given package and Locale
+     * 获取某个包对应的字符串管理器
+     * @param packageName 包名
+     * @param locale 本地语言对象
+     * @return
      */
     public static final synchronized StringManager getManager(
             String packageName, Locale locale) {
 
+        //从缓存中 获取报名对应的语言与管理器表
         Map<Locale,StringManager> map = managers.get(packageName);
-        if (map == null) {
-            /*
-             * Don't want the HashMap to be expanded beyond LOCALE_CACHE_SIZE.
-             * Expansion occurs when size() exceeds capacity. Therefore keep
-             * size at or below capacity.
-             * removeEldestEntry() executes after insertion therefore the test
-             * for removal needs to use one less than the maximum desired size
-             *
-             */
+        if (map == null) {//表不存在
+            //实例化一个表
             map = new LinkedHashMap<Locale,StringManager>(LOCALE_CACHE_SIZE, 1, true) {
                 private static final long serialVersionUID = 1L;
                 @Override
@@ -255,14 +220,20 @@ public class StringManager {
                     return false;
                 }
             };
+
+            //向表中放入包 对应的表
             managers.put(packageName, map);
         }
 
+        //从表中获取语言对应的字符串管理器
         StringManager mgr = map.get(locale);
-        if (mgr == null) {
+        if (mgr == null) {//字符串管理器不存在
+            //实例化一个字符串管理器
             mgr = new StringManager(packageName, locale);
+            //将字符串管理器放入表中
             map.put(locale, mgr);
         }
+        //返回字符串管理器
         return mgr;
     }
 

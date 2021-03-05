@@ -78,10 +78,7 @@ import org.apache.tomcat.util.res.StringManager;
 
 
 /**
- * Helper class used to initialize and populate the JNDI context associated
- * with each context and server.
- *
- * @author Remy Maucherat
+ * 命名上下文监听器类
  */
 public class NamingContextListener
     implements LifecycleListener, ContainerListener, PropertyChangeListener {
@@ -92,47 +89,47 @@ public class NamingContextListener
     // ----------------------------------------------------- Instance Variables
 
     /**
-     * Name of the associated naming context.
+     * 访问命名资源的目录 需要带令牌
      */
     protected String name = "/";
 
 
     /**
-     * Associated container.
+     * 容器对象  StandardServer
      */
     protected Object container = null;
 
     /**
-     * Token for configuring associated JNDI context.
+     * 访问命名资源的令牌
      */
     private Object token = null;
 
     /**
-     * Initialized flag.
+     * 命名资源是否已经初始化  启动StandardServer之前 先初始化命名资源对象
      */
     protected boolean initialized = false;
 
 
     /**
-     * Associated naming resources.
+     * 将要访问的全局命名资源
      */
     protected NamingResourcesImpl namingResources = null;
 
 
     /**
-     * Associated JNDI context.
+     * 命名上下文对象  绑定了名为UserDatabase的引用对象 UserDatabase的引用对象 ResourceRef{className:xx.xx,auto:Catalina,factory:xx,pathname:xxxx}
      */
     protected NamingContext namingContext = null;
 
 
     /**
-     * Comp context.
+     * 补偿上下文对象 指向namingContext对象
      */
     protected javax.naming.Context compCtx = null;
 
 
     /**
-     * Env context.
+     * 环境上下文对象 指向 namingContext对象
      */
     protected javax.naming.Context envCtx = null;
 
@@ -146,6 +143,7 @@ public class NamingContextListener
     /**
      * Determines if an attempt to write to a read-only context results in an
      * exception or if the request is ignored.
+     * 确定尝试写入只读上下文是否导致异常或是否忽略该请求。
      */
     private boolean exceptionOnFailedWrite = true;
 
@@ -208,9 +206,8 @@ public class NamingContextListener
     // ---------------------------------------------- LifecycleListener Methods
 
     /**
-     * Acknowledge the occurrence of the specified event.
-     *
-     * @param event LifecycleEvent that has occurred
+     * 命名资源处理服务器事件
+     * @param event 生命周期事件对象
      */
     @Override
     public void lifecycleEvent(LifecycleEvent event) {
@@ -219,24 +216,46 @@ public class NamingContextListener
 
         if (container instanceof Context) {
             namingResources = ((Context) container).getNamingResources();
+            //设置访问命名资源对象的秘钥对象
             token = ((Context) container).getNamingToken();
-        } else if (container instanceof Server) {
+        } else if (container instanceof Server) {//Container为standardServer对象
+            //获取StandardServer的全局命名资源对象
             namingResources = ((Server) container).getGlobalNamingResources();
+            //设置秘钥
             token = ((Server) container).getNamingToken();
         } else {
             return;
         }
 
-        if (Lifecycle.CONFIGURE_START_EVENT.equals(event.getType())) {
+        if (Lifecycle.CONFIGURE_START_EVENT.equals(event.getType())) {//启动StandardServer之前  先初始化配置
 
-            if (initialized)
+            //实例化一个命名上下文 namingContext对象
+            //设置访问/ 目录的令牌对象为namingResourceImpl的令牌对象
+            //向NamingContext绑定UserDatabase 对应的资源引用对象 ResourceRef
+            //设置返回StandardServer的令牌对象为namingResourceImpl的令牌对象
+            //设置StandardServer的上下文对象为NamingContext对象
+            //设置StandardServer类加载器classLoader的上下文对象为NamingContext对象
+            //设置StandardServer类加载器classLoader加载对象为StandardServer
+
+
+
+            if (initialized)//命名资源如果已经初始化 直接返回
                 return;
 
             try {
+
+                //初始化上下文环境对象
                 Hashtable<String, Object> contextEnv = new Hashtable<>();
+                //设置命名上下文对象
                 namingContext = new NamingContext(contextEnv, getName());
+
+                //设置访问命名资源的 指定资源名称的令牌对象 比如 /目录 全局命名资源的下所有的资源对象都需要令牌对象
                 ContextAccessController.setSecurityToken(getName(), token);
+
+                //设置返回对象的令牌对象  比如container = StandardServer
                 ContextAccessController.setSecurityToken(container, token);
+
+                //将容器对象与命名上下文对象注册到绑定列表
                 ContextBindings.bindContext(container, namingContext, token);
                 if( log.isDebugEnabled() ) {
                     log.debug("Bound " + container );
@@ -246,16 +265,18 @@ public class NamingContextListener
                 namingContext.setExceptionOnFailedWrite(
                         getExceptionOnFailedWrite());
 
-                // Setting the context in read/write mode
+               //移除只读秘钥列表中的资源
                 ContextAccessController.setWritable(getName(), token);
 
                 try {
+                    //创建命名上下文 绑定资源引用到namingContext上 比如UserDatabase -> UserDatabase的引用对象 ResourceRef{className:xx.xx,auto:Catalina,factory:xx,pathname:xxxx}
                     createNamingContext();
                 } catch (NamingException e) {
                     log.error
                         (sm.getString("naming.namingContextCreationFailed", e));
                 }
 
+                //命名资源对象添加属性改变监听器
                 namingResources.addPropertyChangeListener(this);
 
                 // Binding the naming context to the class loader
@@ -270,23 +291,24 @@ public class NamingContextListener
                     }
                 }
 
-                if (container instanceof Server) {
+                if (container instanceof Server) {//StandardServer对象
                     org.apache.naming.factory.ResourceLinkFactory.setGlobalContext
                         (namingContext);
                     try {
+                        //绑定类加载器的上下文
                         ContextBindings.bindClassLoader(container, token,
                                 this.getClass().getClassLoader());
                     } catch (NamingException e) {
                         log.error(sm.getString("naming.bindFailed", e));
                     }
-                    if (container instanceof StandardServer) {
+                    if (container instanceof StandardServer) {//如果StandardServer类型
                         ((StandardServer) container).setGlobalNamingContext
                             (namingContext);
                     }
                 }
 
             } finally {
-                // Regardless of success, so that we can do cleanup on configure_stop
+                // 设置初始化完成
                 initialized = true;
             }
 
@@ -364,9 +386,8 @@ public class NamingContextListener
 
 
     /**
-     * Process property change events.
-     *
-     * @param event The property change event that has occurred
+     * 属性改变事件 比如namingResourceImpl的resources列表改变事件
+     * @param event 事件对象
      */
     @Override
     public void propertyChange(PropertyChangeEvent event) {
@@ -520,14 +541,17 @@ public class NamingContextListener
 
 
     /**
-     * Create and initialize the JNDI naming context.
+     * 创建命名上下文对象
+     * 向namingContext对象 注册资源 、 环境
      */
     private void createNamingContext()
         throws NamingException {
 
         // Creating the comp subcontext
-        if (container instanceof Server) {
+        if (container instanceof Server) {//容器为Server
+            //设置补偿命名上下文对象
             compCtx = namingContext;
+            //设置环境命名上下文对象
             envCtx = namingContext;
         } else {
             compCtx = namingContext.createSubcontext("comp");
@@ -551,9 +575,10 @@ public class NamingContextListener
             addResourceLink(resourceLinks[i]);
         }
 
-        // Resources
+        //获取全局命名资源中注册的所有上下文资源对象列表
         ContextResource[] resources = namingResources.findResources();
         for (i = 0; i < resources.length; i++) {
+            //添加上下文资源对象 在namingContext上绑定引用  UserDatabase的引用对象 ResourceRef{className:xx.xx,auto:Catalina,factory:xx,pathname:xxxx}
             addResource(resources[i]);
         }
 
@@ -974,24 +999,31 @@ public class NamingContextListener
 
 
     /**
-     * Set the specified resources in the naming context.
-     *
-     * @param resource the resource descriptor
+     * 添加上下文资源对象
+     * @param resource 上下文资源对象
      */
     public void addResource(ContextResource resource) {
 
+        //获取资源的查询引用对象
         Reference ref = lookForLookupRef(resource);
 
-        if (ref == null) {
+        if (ref == null) {//资源的查询引用对象不存在
             // Create a reference to the resource.
+            //实例化一个资源引用对象
+            //根据配置的属性值 生成引用对象
             ref = new ResourceRef(resource.getType(), resource.getDescription(),
                     resource.getScope(), resource.getAuth(), resource.getSingleton());
-            // Adding the additional parameters, if any
+
+            //获取资源的属性列表
             Iterator<String> params = resource.listProperties();
             while (params.hasNext()) {
+                //自定义属性名
                 String paramName = params.next();
+                //属性值
                 String paramValue = (String) resource.getProperty(paramName);
+                //实例化一个引用地址对象
                 StringRefAddr refAddr = new StringRefAddr(paramName, paramValue);
+                //添加引用地址
                 ref.add(refAddr);
             }
         }
@@ -1000,7 +1032,11 @@ public class NamingContextListener
             if (log.isDebugEnabled()) {
                 log.debug("  Adding resource ref " + resource.getName() + "  " + ref);
             }
+
+            //创建中间子上下文对象
             createSubcontexts(envCtx, resource.getName());
+
+            //环境上下文绑定引用对象  UserDatabase 绑定ContextResource对象
             envCtx.bind(resource.getName(), ref);
         } catch (NamingException e) {
             log.error(sm.getString("naming.bindFailed", e));
@@ -1067,8 +1103,6 @@ public class NamingContextListener
      * @param resourceLink the resource link
      */
     public void addResourceLink(ContextResourceLink resourceLink) {
-
-        // Create a reference to the resource.
         Reference ref = new ResourceLinkRef
             (resourceLink.getType(), resourceLink.getGlobal(), resourceLink.getFactory(), null);
         Iterator<String> i = resourceLink.listProperties();
@@ -1248,10 +1282,11 @@ public class NamingContextListener
 
 
     /**
-     * Create all intermediate subcontexts.
+     * 创建所有的中间子上下文
      */
     private void createSubcontexts(javax.naming.Context ctx, String name)
         throws NamingException {
+        //获取命名上下文对象
         javax.naming.Context currentContext = ctx;
         StringTokenizer tokenizer = new StringTokenizer(name, "/");
         while (tokenizer.hasMoreTokens()) {
@@ -1271,14 +1306,15 @@ public class NamingContextListener
 
 
     /**
-     * Gets look up reference from resource if exist.
-     *
-     * @param resourceBase resource base object
-     * @return lookup ref
+     * 资源对象的查询引用对象
+     * @param resourceBase 资源对象
+     * @return
      */
     private LookupRef lookForLookupRef(ResourceBase resourceBase) {
+        //获取资源的额查询名
         String lookupName = resourceBase.getLookupName();
-        if ((lookupName != null && !lookupName.equals(""))) {
+        if ((lookupName != null && !lookupName.equals(""))) {//资源对象配置了查询名
+            //实例化一个查询引用对象 返回
             return new LookupRef(resourceBase.getType(), lookupName);
         }
         return null;

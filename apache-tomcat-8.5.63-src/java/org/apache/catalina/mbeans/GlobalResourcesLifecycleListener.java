@@ -40,12 +40,7 @@ import org.apache.tomcat.util.modeler.Registry;
 
 
 /**
- * Implementation of <code>LifecycleListener</code> that instantiates the
- * set of MBeans associated with global JNDI resources that are subject to
- * management.
- *
- * @author Craig R. McClanahan
- * @since 4.1
+ * 全局资源监听器类
  */
 public class GlobalResourcesLifecycleListener implements LifecycleListener {
 
@@ -55,13 +50,12 @@ public class GlobalResourcesLifecycleListener implements LifecycleListener {
     // ----------------------------------------------------- Instance Variables
 
     /**
-     * The owning Catalina component that we are attached to.
+     *组件 StandardServer对象
      */
     protected Lifecycle component = null;
 
-
     /**
-     * The configuration information registry for our managed beans.
+     * 登记处对象
      */
     protected static final Registry registry = MBeanUtils.createRegistry();
 
@@ -76,10 +70,11 @@ public class GlobalResourcesLifecycleListener implements LifecycleListener {
     @Override
     public void lifecycleEvent(LifecycleEvent event) {
 
-        if (Lifecycle.START_EVENT.equals(event.getType())) {
+        if (Lifecycle.START_EVENT.equals(event.getType())) {//开始事件
+            //设置组件为StandardServer对象
             component = event.getLifecycle();
             createMBeans();
-        } else if (Lifecycle.STOP_EVENT.equals(event.getType())) {
+        } else if (Lifecycle.STOP_EVENT.equals(event.getType())) {//结束事件
             destroyMBeans();
             component = null;
         }
@@ -89,12 +84,17 @@ public class GlobalResourcesLifecycleListener implements LifecycleListener {
     // ------------------------------------------------------ Protected Methods
 
     /**
-     * Create the MBeans for the interesting global JNDI resources.
+     * 从上下文Context中根据匹配路径 / 获取之前创建的namingContext对象
+     * 获取注册到namingContext对象中的UserDatabase的引用对象  生产一个实例MemoryDatabase
+     * 将MemoryData包装为动态的MBean对象 存储到MBeanServer仓库
      */
     protected void createMBeans() {
         // Look up our global naming context
         Context context = null;
         try {
+            //通过jvm参数 java.naming.factory.initial指定的factory类 实例化一个SelectorContext Context选择器对象
+            //SelectorContext持有环境标的引用
+            //调用 SelectorContext的lookup方法  以当前线程的类加载器为key 获取类加载器的NamingContext对象
             context = (Context) (new InitialContext()).lookup("java:/");
         } catch (NamingException e) {
             log.error("No global naming context defined for server");
@@ -103,6 +103,8 @@ public class GlobalResourcesLifecycleListener implements LifecycleListener {
 
         // Recurse through the defined global JNDI resources context
         try {
+            //获取注册到namingContext的UserDatabase的引用 实例化一个MemoryDatabase对象
+            //将MemoryDatabase对象 包装为动态的MBean 存储到MBeanServer仓库
             createMBeans("", context);
         } catch (NamingException e) {
             log.error("Exception processing Global JNDI Resources", e);
@@ -111,13 +113,10 @@ public class GlobalResourcesLifecycleListener implements LifecycleListener {
 
 
     /**
-     * Create the MBeans for the interesting global JNDI resources in
-     * the specified naming context.
-     *
-     * @param prefix Prefix for complete object name paths
-     * @param context Context to be scanned
-     *
-     * @exception NamingException if a JNDI exception occurs
+     * 创建MBean对象
+     * @param prefix 前缀
+     * @param context
+     * @throws NamingException
      */
     protected void createMBeans(String prefix, Context context) throws NamingException {
 
@@ -127,10 +126,14 @@ public class GlobalResourcesLifecycleListener implements LifecycleListener {
         }
 
         try {
+            //获取所有注册到上下文中的对象迭代器
             NamingEnumeration<Binding> bindings = context.listBindings("");
-            while (bindings.hasMore()) {
+            while (bindings.hasMore()) {//有一个实体NamingEntry UserDatabase对应的ResourceRef对象
+                //获取绑定对象
                 Binding binding = bindings.next();
+                //获取绑定名
                 String name = prefix + binding.getName();
+                //获取绑定对象
                 Object value = context.lookup(binding.getName());
                 if (log.isDebugEnabled()) {
                     log.debug("Checking resource " + name);
@@ -139,6 +142,7 @@ public class GlobalResourcesLifecycleListener implements LifecycleListener {
                     createMBeans(name + "/", (Context) value);
                 } else if (value instanceof UserDatabase) {
                     try {
+                        //将UserDatabase注册MBeanServer服务器
                         createMBeans(name, (UserDatabase) value);
                     } catch (Exception e) {
                         log.error("Exception creating UserDatabase MBeans for " + name, e);
@@ -154,12 +158,10 @@ public class GlobalResourcesLifecycleListener implements LifecycleListener {
 
 
     /**
-     * Create the MBeans for the specified UserDatabase and its contents.
-     *
-     * @param name Complete resource name of this UserDatabase
-     * @param database The UserDatabase to be processed
-     *
-     * @exception Exception if an exception occurs while creating MBeans
+     * 创建UserDatabase对象的MBean对象
+     * @param name UserDatabase名
+     * @param database 对象
+     * @throws Exception
      */
     protected void createMBeans(String name, UserDatabase database) throws Exception {
 
@@ -169,13 +171,15 @@ public class GlobalResourcesLifecycleListener implements LifecycleListener {
             log.debug("Database=" + database);
         }
         try {
+
+            //将database对象包装为动态的MBean对象 存储到MBeanServer仓库
             MBeanUtils.createMBean(database);
         } catch(Exception e) {
             throw new IllegalArgumentException(
                     "Cannot create UserDatabase MBean for resource " + name, e);
         }
 
-        // Create the MBeans for each defined Role
+        //将对象的角色注册到MBeanServer仓库
         Iterator<Role> roles = database.getRoles();
         while (roles.hasNext()) {
             Role role = roles.next();
@@ -189,7 +193,7 @@ public class GlobalResourcesLifecycleListener implements LifecycleListener {
             }
         }
 
-        // Create the MBeans for each defined Group
+        // 将数据库的组注册到MBeanServer仓库
         Iterator<Group> groups = database.getGroups();
         while (groups.hasNext()) {
             Group group = groups.next();
@@ -204,7 +208,7 @@ public class GlobalResourcesLifecycleListener implements LifecycleListener {
             }
         }
 
-        // Create the MBeans for each defined User
+        // 将数据库所有的用户注册到MBeanServer仓库
         Iterator<User> users = database.getUsers();
         while (users.hasNext()) {
             User user = users.next();

@@ -27,18 +27,7 @@ import org.xml.sax.Attributes;
 
 
 /**
- * Rule that creates a new {@link LifecycleListener} and associates it with the
- * top object on the stack which must implement {@link Container}. The
- * implementation class to be used is determined by:
- * <ol>
- * <li>Does the top element on the stack specify an implementation class using
- *     the attribute specified when this rule was created?</li>
- * <li>Does the parent {@link Container} of the {@link Container} on the top of
- *     the stack specify an implementation class using the attribute specified
- *     when this rule was created?</li>
- * <li>Use the default implementation class specified when this rule was
- *     created.</li>
- * </ol>
+ * 生命周期监听器规则类
  */
 public class LifecycleListenerRule extends Rule {
 
@@ -47,15 +36,11 @@ public class LifecycleListenerRule extends Rule {
 
 
     /**
-     * Construct a new instance of this Rule.
-     *
-     * @param listenerClass Default name of the LifecycleListener
-     *  implementation class to be created
-     * @param attributeName Name of the attribute that optionally
-     *  includes an override name of the LifecycleListener class
+     * 实例化一个生命周期监听器规则对象
+     * @param listenerClass 监听class全类吗
+     * @param attributeName 属性名
      */
     public LifecycleListenerRule(String listenerClass, String attributeName) {
-
         this.listenerClass = listenerClass;
         this.attributeName = attributeName;
 
@@ -66,14 +51,13 @@ public class LifecycleListenerRule extends Rule {
 
 
     /**
-     * The attribute name of an attribute that can override the
-     * implementation class name.
+     * 用户定义的容器对象的周期监听器的属性名 标签中这个属性值 将作为当前容器对象的生命周期监听器
      */
     private final String attributeName;
 
 
     /**
-     * The name of the <code>LifecycleListener</code> implementation class.
+     * 当前标签容器对象默认的生命周期监听器
      */
     private final String listenerClass;
 
@@ -82,34 +66,39 @@ public class LifecycleListenerRule extends Rule {
 
 
     /**
-     * Handle the beginning of an XML element.
-     *
-     * @param attributes The attributes of this element
-     *
-     * @exception Exception if a processing error occurs
+     *开始解析标签
+     * @param namespace 标签命名空间
+     * @param name 标签名
+     * @param attributes 属性列表
+     * @throws Exception
      */
     @Override
     public void begin(String namespace, String name, Attributes attributes)
         throws Exception {
-
+        //获取当前标签对象
         Container c = (Container) digester.peek();
+        //父标签容器对象
         Container p = null;
+        //获取父标签对象
         Object obj = digester.peek(1);
-        if (obj instanceof Container) {
+        if (obj instanceof Container) {//如果父标签对象为容器类型
+            //当前容器对象
             p = (Container) obj;
         }
 
+        //class类名
         String className = null;
 
         // Check the container for the specified attribute
-        if (attributeName != null) {
+        if (attributeName != null) {//如果指定了监听的属性名
+            //获取属性值
             String value = attributes.getValue(attributeName);
-            if (value != null)
+            if (value != null)//属性值存在
                 className = value;
         }
 
-        // Check the container's parent for the specified attribute
-        if (p != null && className == null) {
+
+        if (p != null && className == null) {//如果当前标签是容器对象  并且用户没有指定属性名
             String configClass =
                 (String) IntrospectionUtils.getProperty(p, attributeName);
             if (configClass != null && configClass.length() > 0) {
@@ -118,15 +107,16 @@ public class LifecycleListenerRule extends Rule {
         }
 
         // Use the default
-        if (className == null) {
+        if (className == null) {//用户没有指定监听的class全类名 使用默认的class全类名
             className = listenerClass;
         }
 
-        // Instantiate a new LifecycleListener implementation object
+        //获取className的全类名的class对象
         Class<?> clazz = Class.forName(className);
+        //实例化一个监听器
         LifecycleListener listener = (LifecycleListener) clazz.getConstructor().newInstance();
 
-        // Add this LifecycleListener to our associated component
+        //给当前对象添加生命周期监听器
         c.addLifecycleListener(listener);
     }
 

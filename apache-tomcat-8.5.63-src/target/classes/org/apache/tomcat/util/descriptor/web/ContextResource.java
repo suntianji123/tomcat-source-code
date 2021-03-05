@@ -17,14 +17,8 @@
 package org.apache.tomcat.util.descriptor.web;
 
 
-
 /**
- * Representation of a resource reference for a web application, as
- * represented in a <code>&lt;resource-ref&gt;</code> element in the
- * deployment descriptor.
- *
- * @author Craig R. McClanahan
- * @author Peter Rossbach (pero@apache.org)
+ * 上下文资源类 通过server.xml中的Server/GlobalNamingResources/Resource标签指定
  */
 public class ContextResource extends ResourceBase {
 
@@ -34,8 +28,7 @@ public class ContextResource extends ResourceBase {
 
 
     /**
-     * The authorization requirement for this resource
-     * (<code>Application</code> or <code>Container</code>).
+     * 资源的授权要求 例如：Container
      */
     private String auth = null;
 

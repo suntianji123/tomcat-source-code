@@ -49,7 +49,7 @@ public class CombinedRealm extends RealmBase {
     private static final Log log = LogFactory.getLog(CombinedRealm.class);
 
     /**
-     * The list of Realms contained by this Realm.
+     * 领域列表
      */
     protected final List<Realm> realms = new LinkedList<>();
 
@@ -61,9 +61,8 @@ public class CombinedRealm extends RealmBase {
     protected static final String name = "CombinedRealm";
 
     /**
-     * Add a realm to the list of realms that will be used to authenticate
-     * users.
-     * @param theRealm realm which should be wrapped by the combined realm
+     * 添加一个子领域对象
+     * @param theRealm 被添加的子领域对象
      */
     public void addRealm(Realm theRealm) {
         realms.add(theRealm);
@@ -215,20 +214,21 @@ public class CombinedRealm extends RealmBase {
 
 
     /**
-     * Set the Container with which this Realm has been associated.
-     *
-     * @param container The associated Container
+     * 设置领域对象所属的容器对象
+     * @param container 容器对象
      */
     @Override
     public void setContainer(Container container) {
+        //遍历所有的领域对象
         for(Realm realm : realms) {
             // Set the realmPath for JMX naming
-            if (realm instanceof RealmBase) {
+            if (realm instanceof RealmBase) {//如果领域对象为基本领域
+                //设置领域路径
                 ((RealmBase) realm).setRealmPath(
                         getRealmPath() + "/realm" + realms.indexOf(realm));
             }
 
-            // Set the container for sub-realms. Mainly so logging works.
+            // 设置领域的容器
             realm.setContainer(container);
         }
         super.setContainer(container);
@@ -236,22 +236,20 @@ public class CombinedRealm extends RealmBase {
 
 
     /**
-     * Prepare for the beginning of active use of the public methods of this
-     * component and implement the requirements of
-     * {@link org.apache.catalina.util.LifecycleBase#startInternal()}.
-     *
-     * @exception LifecycleException if this component detects a fatal error
-     *  that prevents this component from being used
+     * 启动组合灵越对象
+     * @throws LifecycleException
      */
     @Override
     protected void startInternal() throws LifecycleException {
-        // Start 'sub-realms' then this one
+        // 获取领域下的子领域 UserDatabaseRealm
         Iterator<Realm> iter = realms.iterator();
 
         while (iter.hasNext()) {
+            //遍历子领域
             Realm realm = iter.next();
-            if (realm instanceof Lifecycle) {
+            if (realm instanceof Lifecycle) {//生命周期领域
                 try {
+                    //启动生命周期领域
                     ((Lifecycle) realm).start();
                 } catch (LifecycleException e) {
                     // If realm doesn't start can't authenticate against it

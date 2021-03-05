@@ -25,9 +25,7 @@ import org.apache.tomcat.util.digester.Rule;
 import org.xml.sax.Attributes;
 
 /**
- * Rule that uses the introspection utils to set properties.
- *
- * @author Remy Maucherat
+ * 设置标签对象所有属性的类
  */
 public class SetAllPropertiesRule extends Rule {
 
@@ -35,33 +33,45 @@ public class SetAllPropertiesRule extends Rule {
     // ----------------------------------------------------------- Constructors
     public SetAllPropertiesRule() {}
 
+    /**
+     * 实例化一个设置标签对象所有属性的类 并指定需要排除的属性
+     * @param exclude 需要排除的属性数组
+     */
     public SetAllPropertiesRule(String[] exclude) {
         for (String s : exclude) if (s != null) this.excludes.put(s, s);
     }
 
-    // ----------------------------------------------------- Instance Variables
+    /**
+     * 被排除的属性值
+     */
     protected final HashMap<String,String> excludes = new HashMap<>();
 
     // --------------------------------------------------------- Public Methods
 
 
     /**
-     * Handle the beginning of an XML element.
+     * 设置所有属性的标签
+     * @param namespace 命名空间
+     * @param nameX 标签名
+     * @param attributes 属性列表
      *
-     * @param attributes The attributes of this element
-     *
-     * @exception Exception if a processing error occurs
+     * @throws Exception
      */
     @Override
     public void begin(String namespace, String nameX, Attributes attributes)
         throws Exception {
 
-        for (int i = 0; i < attributes.getLength(); i++) {
+        for (int i = 0; i < attributes.getLength(); i++) {//遍历属性里诶包
+            //获取属性名
             String name = attributes.getLocalName(i);
             if ("".equals(name)) {
                 name = attributes.getQName(i);
             }
+
+            //获取属性值
             String value = attributes.getValue(i);
+
+            //设置标签对象的属性值
             if ( !excludes.containsKey(name)) {
                 if (!digester.isFakeAttribute(digester.peek(), name)
                         && !IntrospectionUtils.setProperty(digester.peek(), name, value)

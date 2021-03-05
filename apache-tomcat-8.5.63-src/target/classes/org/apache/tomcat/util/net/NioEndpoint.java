@@ -81,15 +81,18 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
 
     // ----------------------------------------------------------------- Fields
 
+    /**
+     * 轮训器池子对象
+     */
     private NioSelectorPool selectorPool = new NioSelectorPool();
 
     /**
-     * Server socket "pointer".
+     * 缓存客户端连接的Channel对象
      */
     private volatile ServerSocketChannel serverSock = null;
 
     /**
-     * Stop latch used to wait for poller stop
+     * 停止计数器  初始计数值为轮训器的数量 默认为2
      */
     private volatile CountDownLatch stopLatch = null;
 
@@ -127,7 +130,7 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
 
 
     /**
-     * Use System.inheritableChannel to obtain channel from stdin/stdout.
+     * 是否使用继承的通道
      */
     private boolean useInheritedChannel = false;
     public void setUseInheritedChannel(boolean useInheritedChannel) { this.useInheritedChannel = useInheritedChannel; }
@@ -140,9 +143,8 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
     public void setPollerThreadPriority(int pollerThreadPriority) { this.pollerThreadPriority = pollerThreadPriority; }
     public int getPollerThreadPriority() { return pollerThreadPriority; }
 
-
     /**
-     * Poller thread count.
+     * 轮训器线程数量  2个
      */
     private int pollerThreadCount = Math.min(2,Runtime.getRuntime().availableProcessors());
     public void setPollerThreadCount(int pollerThreadCount) { this.pollerThreadCount = pollerThreadCount; }
@@ -210,15 +212,22 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
     // ----------------------------------------------- Public Lifecycle Methods
 
     /**
-     * Initialize the endpoint.
+     * 绑定方法
+     * 打开ServerSocketChannel 绑定端口号
+     * 打开轮训器 启动轮训器线程
+     * @throws Exception
      */
     @Override
     public void bind() throws Exception {
 
-        if (!getUseInheritedChannel()) {
+        if (!getUseInheritedChannel()) {//不适用继承的channel方法
+            //打开一个服务器通道
             serverSock = ServerSocketChannel.open();
+            //将socketProperties配置的参数 设置到ServerSocketChannel的相关参数
             socketProperties.setProperties(serverSock.socket());
             InetSocketAddress addr = (getAddress()!=null?new InetSocketAddress(getAddress(),getPort()):new InetSocketAddress(getPort()));
+
+            //设置serverSocketChannel绑定的端口号
             serverSock.socket().bind(addr,getAcceptCount());
         } else {
             // Retrieve the channel provided by the OS
@@ -230,6 +239,8 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
                 throw new IllegalArgumentException(sm.getString("endpoint.init.bind.inherited"));
             }
         }
+
+        //设置阻塞 值为true
         serverSock.configureBlocking(true); //mimic APR behavior
 
         // Initialize thread count defaults for acceptor, poller
@@ -241,6 +252,8 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
             //minimum one poller thread
             pollerThreadCount = 1;
         }
+
+        //设置停止的计数器
         setStopLatch(new CountDownLatch(pollerThreadCount));
 
         // Initialize SSL if needed
@@ -1116,7 +1129,15 @@ public class NioEndpoint extends AbstractJsseEndpoint<NioChannel> {
 
         private Poller poller = null;
         private int interestOps = 0;
+
+        /**
+         * channel可读的计数器
+         */
         private CountDownLatch readLatch = null;
+
+        /**
+         * channel可写的计数器
+         */
         private CountDownLatch writeLatch = null;
         private volatile SendfileData sendfileData = null;
         private volatile long lastRead = System.currentTimeMillis();

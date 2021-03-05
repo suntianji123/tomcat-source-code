@@ -43,7 +43,7 @@ public class ResourceLinkFactory implements ObjectFactory {
     protected static final StringManager sm = StringManager.getManager(ResourceLinkFactory.class);
 
     /**
-     * Global naming context.
+     * 全局的命名上下文对象 namingContext对象 中有[UserDatabase=ResourceRef{className=xx.xx,auth=Catalian,description=xxx,factory=xx,pathname=xxx}]
      */
     private static Context globalContext = null;
 
@@ -53,9 +53,8 @@ public class ResourceLinkFactory implements ObjectFactory {
     // --------------------------------------------------------- Public Methods
 
     /**
-     * Set the global context (note: can only be used once).
-     *
-     * @param newGlobalContext new global context value
+     * 设置全局的命名上下文对象 namingContext对象 中有[UserDatabase=ResourceRef{className=xx.xx,auth=Catalian,description=xxx,factory=xx,pathname=xxx}]
+     * @param newGlobalContext 全局的命名上下文对象
      */
     public static void setGlobalContext(Context newGlobalContext) {
         SecurityManager sm = System.getSecurityManager();

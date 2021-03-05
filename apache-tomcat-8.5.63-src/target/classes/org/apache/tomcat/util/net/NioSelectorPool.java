@@ -30,44 +30,65 @@ import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 
 /**
- *
- * Thread safe non blocking selector pool
- * @version 1.0
- * @since 6.0
+ * 轮训器池子类
  */
-
 public class NioSelectorPool {
 
+
+    /**
+     * 实例化一个轮训器池子对象
+     */
     public NioSelectorPool() {
     }
 
     private static final Log log = LogFactory.getLog(NioSelectorPool.class);
 
+    /**
+     * 是否可用使用公共的轮训器
+     */
     protected static final boolean SHARED =
         Boolean.parseBoolean(System.getProperty("org.apache.tomcat.util.net.NioSelectorShared", "true"));
 
+    /**
+     * 阻塞的轮训器
+     */
     protected NioBlockingSelector blockingSelector;
 
+    /**
+     * 公共的轮训器
+     */
     protected volatile Selector SHARED_SELECTOR;
 
     protected int maxSelectors = 200;
     protected long sharedSelectorTimeout = 30000;
     protected int maxSpareSelectors = -1;
+
+    /**
+     * 轮训器是否可以使用
+     */
     protected boolean enabled = true;
     protected AtomicInteger active = new AtomicInteger(0);
     protected AtomicInteger spare = new AtomicInteger(0);
     protected ConcurrentLinkedQueue<Selector> selectors =
             new ConcurrentLinkedQueue<>();
 
+    /**
+     * 获取共享的轮训器
+     * @return
+     * @throws IOException
+     */
     protected Selector getSharedSelector() throws IOException {
-        if (SHARED && SHARED_SELECTOR == null) {
+        if (SHARED && SHARED_SELECTOR == null) {//可以使用共享的轮训器 但是轮训器没有打开
             synchronized ( NioSelectorPool.class ) {
                 if ( SHARED_SELECTOR == null )  {
+                    //打开一个轮训器
                     SHARED_SELECTOR = Selector.open();
                     log.info("Using a shared selector for servlet write/read");
                 }
             }
         }
+
+        //返回共享的轮训器
         return  SHARED_SELECTOR;
     }
 
@@ -125,11 +146,19 @@ public class NioSelectorPool {
         }
     }
 
+    /**
+     * 打开轮训器
+     * @throws IOException
+     */
     public void open() throws IOException {
         enabled = true;
+
+        //获取共享的轮训器
         getSharedSelector();
-        if (SHARED) {
+        if (SHARED) {//可以使用的共享的轮训器
             blockingSelector = new NioBlockingSelector();
+
+            //将共享的轮训器绑定到阻塞的轮训器
             blockingSelector.open(getSharedSelector());
         }
 

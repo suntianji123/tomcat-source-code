@@ -107,7 +107,7 @@ public class MemoryUserDatabase implements UserDatabase {
     // ----------------------------------------------------- Instance Variables
 
     /**
-     * The set of {@link Group}s defined in this database, keyed by group name.
+     * 数据库的组
      */
     protected final Map<String, Group> groups = new ConcurrentHashMap<>();
 
@@ -140,17 +140,21 @@ public class MemoryUserDatabase implements UserDatabase {
     protected boolean readonly = true;
 
     /**
-     * The set of {@link Role}s defined in this database, keyed by role name.
+     * 数据库中所有的角色表
      */
     protected final Map<String, Role> roles = new ConcurrentHashMap<>();
 
     /**
-     * The set of {@link User}s defined in this database, keyed by user name.
+     * 数据库的用户表
      */
     protected final Map<String, User> users = new ConcurrentHashMap<>();
 
     private final ReentrantReadWriteLock dbLock = new ReentrantReadWriteLock();
     private final Lock readLock = dbLock.readLock();
+
+    /**
+     * 访问数据库的写锁
+     */
     private final Lock writeLock = dbLock.writeLock();
 
     private volatile long lastModified = 0;
@@ -183,7 +187,8 @@ public class MemoryUserDatabase implements UserDatabase {
 
 
     /**
-     * @return the relative or absolute pathname to the persistent storage file.
+     * 获取数据库配置文件路径
+     * @return
      */
     public String getPathname() {
         return this.pathname;
@@ -410,33 +415,46 @@ public class MemoryUserDatabase implements UserDatabase {
 
 
     /**
-     * Initialize access to this user database.
-     *
-     * @exception Exception if any exception is thrown during opening
+     * 打开数据库
+     * @throws Exception
      */
     @Override
     public void open() throws Exception {
+        //写锁上锁
         writeLock.lock();
         try {
-            // Erase any previous groups and users
+            //清理连接数据库的用户表
             users.clear();
+            //清理数据库的工作组
             groups.clear();
+
+            //清理数据库的角色表
             roles.clear();
 
+            //数据库配置文件路径
             String pathName = getPathname();
+            //获取配置文件的uri
             URI uri = ConfigFileLoader.getURI(pathName);
+
+            //uConn连接对象
             URLConnection uConn = null;
 
             try {
+                //转为化url对象
                 URL url = uri.toURL();
+                //打开连接
                 uConn = url.openConnection();
 
+                //获取输入流
                 InputStream is = uConn.getInputStream();
+                //获取文件最后一次修改时间
                 this.lastModified = uConn.getLastModified();
 
-                // Construct a digester to read the XML input file
+                //创建解析xml文件对象
                 Digester digester = new Digester();
                 try {
+
+                    //设置特征
                     digester.setFeature(
                             "http://apache.org/xml/features/allow-java-encodings", true);
                 } catch (Exception e) {
@@ -462,7 +480,7 @@ public class MemoryUserDatabase implements UserDatabase {
             } finally {
                 if (uConn != null) {
                     try {
-                        // Can't close a uConn directly. Have to do it like this.
+                        // 关闭输入流
                         uConn.getInputStream().close();
                     } catch (IOException ioe) {
                         log.warn(sm.getString("memoryUserDatabase.fileClose", pathname), ioe);
@@ -470,6 +488,7 @@ public class MemoryUserDatabase implements UserDatabase {
                 }
             }
         } finally {
+            //释放写锁
             writeLock.unlock();
         }
     }
@@ -564,7 +583,7 @@ public class MemoryUserDatabase implements UserDatabase {
     @Override
     public void save() throws Exception {
 
-        if (getReadonly()) {
+        if (getReadonly()) {//只读
             log.error(sm.getString("memoryUserDatabase.readOnly"));
             return;
         }
@@ -665,6 +684,9 @@ public class MemoryUserDatabase implements UserDatabase {
     }
 
 
+    /**
+     * 后台处理
+     */
     public void backgroundProcess() {
         if (!watchSource) {
             return;

@@ -26,10 +26,8 @@ import org.apache.tomcat.util.ExceptionUtils;
 
 
 /**
- * Simple utility module to make it easy to plug in the server identifier
- * when integrating Tomcat.
+ * 服务器信息类
  *
- * @author Craig R. McClanahan
  */
 public class ServerInfo {
 
@@ -38,32 +36,39 @@ public class ServerInfo {
 
 
     /**
-     * The server information String with which we identify ourselves.
+     * 服务器信息server.info属性值  Apache Tomcat/@VERSION@
      */
     private static final String serverInfo;
 
     /**
-     * The server built String.
+     * 服务器server.built属性值  @VERSION_BUILT@
      */
     private static final String serverBuilt;
 
     /**
-     * The server's version number String.
+     * 服务器版本号server.number属性值 @VERSION_NUMBER@
      */
     private static final String serverNumber;
 
     static {
-
+        //信息
         String info = null;
         String built = null;
+        //服务器版本号
         String number = null;
 
+        //实例化一个属性对象
         Properties props = new Properties();
+        //读取ServerInfo.properties属性文件
         try (InputStream is = ServerInfo.class.getResourceAsStream
                 ("/org/apache/catalina/util/ServerInfo.properties")) {
+            //将属性文件加载到输入流
             props.load(is);
+            //获取server.info属性值  Apache Tomcat/@VERSION@
             info = props.getProperty("server.info");
+            //获取server.built属性值 @VERSION_NUMBER@
             built = props.getProperty("server.built");
+            //获取server.number属性值
             number = props.getProperty("server.number");
         } catch (Throwable t) {
             ExceptionUtils.handleThrowable(t);
@@ -75,8 +80,11 @@ public class ServerInfo {
         if (number == null)
             number = "8.5.x";
 
+        //设置serverInfo
         serverInfo = info;
+        //设置serverBuilt
         serverBuilt = built;
+        //设置serverNumber
         serverNumber = number;
     }
 
@@ -85,7 +93,8 @@ public class ServerInfo {
 
 
     /**
-     * @return the server identification for this version of Tomcat.
+     * 获取服务器版本号  Apache Tomcat/@VERSION@
+     * @return
      */
     public static String getServerInfo() {
         return serverInfo;

@@ -48,56 +48,9 @@ import javax.management.modelmbean.ModelMBeanNotificationBroadcaster;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 
-/*
- * Changes from commons.modeler:
- *
- *  - use DynamicMBean
- *  - remove methods not used in tomcat and redundant/not very generic
- *  - must be created from the ManagedBean - I don't think there were any direct
- *    uses, but now it is required.
- *  - some of the gratuitous flexibility removed - instead this is more predictive and
- *    strict with the use cases.
- *  - all Method and metadata is stored in ManagedBean. BaseModelBMean and ManagedBean act
- *    like Object and Class.
- *  - setModelMBean is no longer called on resources ( not used in tomcat )
- *  - no caching of Methods for now - operations and setters are not called repeatedly in most
- *  management use cases. Getters shouldn't be called very frequently either - and even if they
- *  are, the overhead of getting the method should be small compared with other JMX costs ( RMI, etc ).
- *  We can add getter cache if needed.
- *  - removed unused constructor, fields
- *
- *  TODO:
- *   - clean up catalina.mbeans, stop using weird inheritance
- */
-
 /**
- * <p>Basic implementation of the <code>DynamicMBean</code> interface, which
- * supports the minimal requirements of the interface contract.</p>
- *
- * <p>This can be used directly to wrap an existing java bean, or inside
- * an mlet or anywhere an MBean would be used.
- *
- * Limitations:
- * <ul>
- * <li>Only managed resources of type <code>objectReference</code> are
- *     supported.</li>
- * <li>Caching of attribute values and operation results is not supported.
- *     All calls to <code>invoke()</code> are immediately executed.</li>
- * <li>Persistence of MBean attributes and operations is not supported.</li>
- * <li>All classes referenced as attribute types, operation parameters, or
- *     operation return values must be one of the following:
- *     <ul>
- *     <li>One of the Java primitive types (boolean, byte, char, double,
- *         float, integer, long, short).  Corresponding value will be wrapped
- *         in the appropriate wrapper class automatically.</li>
- *     <li>Operations that return no value should declare a return type of
- *         <code>void</code>.</li>
- *     </ul>
- * <li>Attribute caching is not supported</li>
- * </ul>
- *
- * @author Craig R. McClanahan
- * @author Costin Manolache
+ * 基本的MBean类
+ * 比如StandardServer对象的基本模型的MBean
  */
 public class BaseModelMBean implements DynamicMBean, MBeanRegistration,
         ModelMBeanNotificationBroadcaster {
@@ -118,12 +71,13 @@ public class BaseModelMBean implements DynamicMBean, MBeanRegistration,
      */
     protected BaseNotificationBroadcaster generalBroadcaster = null;
 
-    /** Metadata for the mbean instance.
+    /**
+     * 基本的MBean对象的可管理的MBean对象 比如StandardServer对象对象的在mbeans-descriptors.xml中配置的解析后存储于MBeanServer的对象
      */
     protected ManagedBean managedBean = null;
 
     /**
-     * The managed resource this MBean is associated with (if any).
+     * 资源对象 比如StandardServer对象
      */
     protected Object resource = null;
 
@@ -131,6 +85,9 @@ public class BaseModelMBean implements DynamicMBean, MBeanRegistration,
     // TODO: move to ManagedBean
     static final Object[] NO_ARGS_PARAM = new Object[0];
 
+    /**
+     * 资源对象类型 比如StandardServer的全类名
+     */
     protected String resourceType = null;
 
     // key: operation val: invoke method
@@ -226,6 +183,10 @@ public class BaseModelMBean implements DynamicMBean, MBeanRegistration,
 
     }
 
+    /**
+     * 设置可管理的MBean对象
+     * @param managedBean 可管理的MBean对象
+     */
     public void setManagedBean(ManagedBean managedBean) {
         this.managedBean = managedBean;
     }
@@ -506,29 +467,18 @@ public class BaseModelMBean implements DynamicMBean, MBeanRegistration,
 
 
     /**
-     * Set the instance handle of the object against which we will execute
-     * all methods in this ModelMBean management interface.
-     *
-     * The caller can provide the mbean instance or the object name to
-     * the resource, if needed.
-     *
-     * @param resource The resource object to be managed
-     * @param type The type of reference for the managed resource
-     *  ("ObjectReference", "Handle", "IOR", "EJBHandle", or
-     *  "RMIReference")
-     *
-     * @exception InstanceNotFoundException if the managed resource object
-     *  cannot be found
-     * @exception MBeanException if the initializer of the object throws
-     *  an exception
-     * @exception RuntimeOperationsException if the managed resource or the
-     *  resource type is <code>null</code> or invalid
+     * 设置基本模型的MBean对象的资源对象
+     * @param resource 资源对象
+     * @param type 资源类型 （为resource的全类名）
+     * @throws InstanceNotFoundException
+     * @throws MBeanException
+     * @throws RuntimeOperationsException
      */
     public void setManagedResource(Object resource, String type)
         throws InstanceNotFoundException,
         MBeanException, RuntimeOperationsException
     {
-        if (resource == null)
+        if (resource == null)//resource不能为nulll
             throw new RuntimeOperationsException
                 (new IllegalArgumentException("Managed resource is null"),
                  "Managed resource is null");
@@ -536,7 +486,9 @@ public class BaseModelMBean implements DynamicMBean, MBeanRegistration,
 //        if (!"objectreference".equalsIgnoreCase(type))
 //            throw new InvalidTargetObjectTypeException(type);
 
+        //设置资源对象
         this.resource = resource;
+        //设置资源类型
         this.resourceType = resource.getClass().getName();
 
 //        // Make the resource aware of the model mbean.

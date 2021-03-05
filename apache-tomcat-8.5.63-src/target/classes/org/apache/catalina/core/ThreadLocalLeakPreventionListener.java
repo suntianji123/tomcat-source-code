@@ -38,19 +38,7 @@ import org.apache.tomcat.util.res.StringManager;
 import org.apache.tomcat.util.threads.ThreadPoolExecutor;
 
 /**
- * <p>
- * A {@link LifecycleListener} that triggers the renewal of threads in Executor
- * pools when a {@link Context} is being stopped to avoid thread-local related
- * memory leaks.
- * </p>
- * <p>
- * Note : active threads will be renewed one by one when they come back to the
- * pool after executing their task, see
- * {@link org.apache.tomcat.util.threads.ThreadPoolExecutor}.afterExecute().
- * </p>
- *
- * This listener must be declared in server.xml to be active.
- *
+ * 预防线程上下文变量泄漏监听器类
  */
 public class ThreadLocalLeakPreventionListener implements LifecycleListener,
         ContainerListener {
@@ -67,8 +55,8 @@ public class ThreadLocalLeakPreventionListener implements LifecycleListener,
         StringManager.getManager(Constants.Package);
 
     /**
-     * Listens for {@link LifecycleEvent} for the start of the {@link Server} to
-     * initialize itself and then for after_stop events of each {@link Context}.
+     * 生命周期事件
+     * @param event 生命周期事件对象
      */
     @Override
     public void lifecycleEvent(LifecycleEvent event) {

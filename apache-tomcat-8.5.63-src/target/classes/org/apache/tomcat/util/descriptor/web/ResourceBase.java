@@ -36,7 +36,7 @@ public class ResourceBase implements Serializable, Injectable {
     // ------------------------------------------------------------- Properties
 
     /**
-     * The description of this resource.
+     * 资源描述： 例如：User database that can be updated and saved
      */
     private String description = null;
 
@@ -49,9 +49,8 @@ public class ResourceBase implements Serializable, Injectable {
     }
 
 
-
     /**
-     * The name of this resource.
+     * 资源名 例如：UserDatabase
      */
     private String name = null;
 
@@ -66,7 +65,7 @@ public class ResourceBase implements Serializable, Injectable {
 
 
     /**
-     * The name of the resource implementation class.
+     * 资源的Class类 例如：org.apache.catalina.UserDatabase
      */
     private String type = null;
 
@@ -79,6 +78,9 @@ public class ResourceBase implements Serializable, Injectable {
     }
 
 
+    /**
+     * 资源对象的查询名
+     */
     private String lookupName = null;
 
     public String getLookupName() {
@@ -95,7 +97,8 @@ public class ResourceBase implements Serializable, Injectable {
 
 
     /**
-     * Holder for our configured properties.
+     * 属性map  例如{factory :org.apache.catalina.users.MemoryUserDatabaseFactory,pathname:conf/tomcat-users.xml}
+     *
      */
     private final HashMap<String, Object> properties = new HashMap<>();
 
@@ -125,8 +128,8 @@ public class ResourceBase implements Serializable, Injectable {
     }
 
     /**
-     * List properties.
-     * @return the property names iterator
+     * 获取资源对象的属性列表
+     * @return
      */
     public Iterator<String> listProperties() {
         return properties.keySet().iterator();
@@ -219,7 +222,7 @@ public class ResourceBase implements Serializable, Injectable {
 
 
     /**
-     * The NamingResources with which we are associated (if any).
+     * 所属的名字资源对象
      */
     private NamingResources resources = null;
 

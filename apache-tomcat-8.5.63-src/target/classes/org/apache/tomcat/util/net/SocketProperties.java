@@ -27,9 +27,7 @@ import java.nio.channels.AsynchronousSocketChannel;
 import javax.management.ObjectName;
 
 /**
- * Properties that can be set in the &lt;Connector&gt; element
- * in server.xml. All properties are prefixed with &quot;socket.&quot;
- * and are currently only working for the Nio connector
+ * socket属性类
  */
 public class SocketProperties {
 
@@ -136,7 +134,7 @@ public class SocketProperties {
     protected Integer soLingerTime = null;
 
     /**
-     * SO_TIMEOUT option. default is 20000.
+     * 连接超时时间
      */
     protected Integer soTimeout = Integer.valueOf(20000);
 
@@ -209,6 +207,11 @@ public class SocketProperties {
         }
     }
 
+    /**
+     * 将当前对象的相关属性 设置ServerSocketChannel的相关参数
+     * @param socket 缓存客户端连接请求的通道
+     * @throws SocketException
+     */
     public void setProperties(ServerSocket socket) throws SocketException{
         if (rxBufSize != null)
             socket.setReceiveBufferSize(rxBufSize.intValue());
@@ -220,7 +223,7 @@ public class SocketProperties {
                     performanceBandwidth.intValue());
         if (soReuseAddress != null)
             socket.setReuseAddress(soReuseAddress.booleanValue());
-        if (soTimeout != null && soTimeout.intValue() >= 0)
+        if (soTimeout != null && soTimeout.intValue() >= 0)//设置socket的连接超时时间
             socket.setSoTimeout(soTimeout.intValue());
     }
 
@@ -347,6 +350,10 @@ public class SocketProperties {
         this.tcpNoDelay = Boolean.valueOf(tcpNoDelay);
     }
 
+    /**
+     * 设置连接超时时间
+     * @param soTimeout 连接超时时间
+     */
     public void setSoTimeout(int soTimeout) {
         this.soTimeout = Integer.valueOf(soTimeout);
     }

@@ -26,17 +26,15 @@ import org.apache.catalina.connector.Response;
 import org.apache.catalina.valves.ValveBase;
 
 /**
- * Valve that implements the default basic behavior for the
- * <code>StandardEngine</code> container implementation.
- * <p>
- * <b>USAGE CONSTRAINT</b>:  This implementation is likely to be useful only
- * when processing HTTP requests.
- *
- * @author Craig R. McClanahan
+ * 标准引擎值类
  */
 final class StandardEngineValve extends ValveBase {
 
     //------------------------------------------------------ Constructor
+
+    /**
+     * 实例化一个标准的引擎值
+     */
     public StandardEngineValve() {
         super(true);
     }

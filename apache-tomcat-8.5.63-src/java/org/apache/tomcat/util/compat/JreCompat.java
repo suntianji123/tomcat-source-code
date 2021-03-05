@@ -43,7 +43,15 @@ public class JreCompat {
     private static final JreCompat instance;
     private static StringManager sm =
             StringManager.getManager(JreCompat.class.getPackage().getName());
+
+    /**
+     * jre9是否可用
+     */
     private static final boolean jre9Available;
+
+    /**
+     * jre8是否可用
+     */
     private static final boolean jre8Available;
 
 
@@ -57,8 +65,11 @@ public class JreCompat {
             jre8Available = true;
         }
         else if (Jre8Compat.isSupported()) {
+            //jre8支持
             instance = new Jre8Compat();
+            //jre9不可用
             jre9Available = false;
+            //jre8可用
             jre8Available = true;
         } else {
             instance = new JreCompat();
@@ -146,16 +157,15 @@ public class JreCompat {
 
 
     /**
-     * Disables caching for JAR URL connections. For Java 8 and earlier, this also disables
-     * caching for ALL URL connections.
-     *
-     * @throws IOException If a dummy JAR URLConnection can not be created
+     * 禁用url缓存
+     * @throws IOException
      */
     public void disableCachingForJarUrlConnections() throws IOException {
-        // Doesn't matter that this JAR doesn't exist - just as
-        // long as the URL is well-formed
+        //实例化一个URL对象
         URL url = new URL("jar:file://dummy.jar!/");
+        //打开连接
         URLConnection uConn = url.openConnection();
+        //设置不使用缓存
         uConn.setDefaultUseCaches(false);
     }
 

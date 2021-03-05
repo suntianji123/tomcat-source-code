@@ -32,9 +32,7 @@ import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 
 /**
- * Catalina JNDI Context implementation.
- *
- * @author Remy Maucherat
+ * Context选择器类
  */
 public class SelectorContext implements Context {
 
@@ -43,19 +41,19 @@ public class SelectorContext implements Context {
 
 
     /**
-     * Namespace URL.
+     * 前缀
      */
     public static final String prefix = "java:";
 
 
     /**
-     * Namespace URL length.
+     * 前缀长度
      */
     public static final int prefixLength = prefix.length();
 
 
     /**
-     * Initial context prefix.
+     * 初始化Context对象的前缀名
      */
     public static final String IC_PREFIX = "IC_";
 
@@ -66,8 +64,8 @@ public class SelectorContext implements Context {
 
 
     /**
-     * Builds a Catalina selector context using the given environment.
-     * @param env The environment
+     * 实例化一个Context选择器实例
+     * @param env
      */
     public SelectorContext(Hashtable<String,Object> env) {
         this.env = env;
@@ -76,10 +74,9 @@ public class SelectorContext implements Context {
 
 
     /**
-     * Builds a Catalina selector context using the given environment.
-     * @param env The environment
-     * @param initialContext <code>true</code> if this is the main
-     *  initial context
+     * 实例化一个SeletorContext对象
+     * @param env 环境表
+     * @param initialContext 是否初始化Context对象
      */
     public SelectorContext(Hashtable<String,Object> env,
             boolean initialContext) {
@@ -92,7 +89,7 @@ public class SelectorContext implements Context {
 
 
     /**
-     * Environment.
+     * 环境表
      */
     protected final Hashtable<String,Object> env;
 
@@ -104,7 +101,7 @@ public class SelectorContext implements Context {
 
 
     /**
-     * Request for an initial context.
+     * 是否需要初始化Context对象
      */
     protected final boolean initialContext;
 
@@ -116,14 +113,10 @@ public class SelectorContext implements Context {
 
 
     /**
-     * Retrieves the named object. If name is empty, returns a new instance
-     * of this context (which represents the same naming context as this
-     * context, but its environment may be modified independently and it may
-     * be accessed concurrently).
-     *
-     * @param name the name of the object to look up
-     * @return the object bound to name
-     * @throws NamingException if a naming exception is encountered
+     * 通过选择器查找某个对象
+     * @param name
+     * @return
+     * @throws NamingException
      */
     @Override
     public Object lookup(Name name)
@@ -142,11 +135,10 @@ public class SelectorContext implements Context {
 
 
     /**
-     * Retrieves the named object.
-     *
-     * @param name the name of the object to look up
-     * @return the object bound to name
-     * @throws NamingException if a naming exception is encountered
+     * 根据名字 查找某个Context对象
+     * @param name 名字
+     * @return
+     * @throws NamingException
      */
     @Override
     public Object lookup(String name)
@@ -706,19 +698,20 @@ public class SelectorContext implements Context {
 
 
     /**
-     * Get the bound context.
-     * @return the Context bound with either the current thread or
-     *  the current classloader
-     * @throws NamingException Bindings exception
+     * 获取边界Context对象
+     * @return
+     * @throws NamingException
      */
     protected Context getBoundContext()
         throws NamingException {
 
-        if (initialContext) {
+        if (initialContext) {//需要初始化context对象
+            //获取初始化Context的前缀名 IC_
             String ICName = IC_PREFIX;
-            if (ContextBindings.isThreadBound()) {
+            if (ContextBindings.isThreadBound()) {//判断线程是否有上下文变量
                 ICName += ContextBindings.getThreadName();
-            } else if (ContextBindings.isClassLoaderBound()) {
+            } else if (ContextBindings.isClassLoaderBound()) {//类加载器有上下文
+                //初始化Context的名字 IC_URLClassLoader
                 ICName += ContextBindings.getClassLoaderName();
             }
             Context initialContext = ContextBindings.getContext(ICName);

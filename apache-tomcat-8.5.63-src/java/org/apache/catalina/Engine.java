@@ -78,9 +78,8 @@ public interface Engine extends Container {
 
 
     /**
-     * Set the <code>Service</code> with which we are associated (if any).
-     *
-     * @param service The service that owns this Engine
+     * 设置引擎的服务对象
+     * @param service 服务对象
      */
     public void setService(Service service);
 }

@@ -38,33 +38,17 @@ import org.apache.juli.logging.LogFactory;
 import org.apache.tomcat.util.ExceptionUtils;
 import org.apache.tomcat.util.buf.B2CConverter;
 
-
 /**
- * This is a concrete implementation of {@link AbstractAccessLogValve} that
- * outputs the access log to a file. The features of this implementation
- * include:
- * <ul>
- * <li>Automatic date-based rollover of log files</li>
- * <li>Optional log file rotation</li>
- * </ul>
- * <p>
- * For UNIX users, another field called <code>checkExists</code> is also
- * available. If set to true, the log file's existence will be checked before
- * each logging. This way an external log rotator can move the file
- * somewhere and Tomcat will start with a new file.
- * </p>
- *
- * <p>
- * For JMX junkies, a public method called <code>rotate</code> has
- * been made available to allow you to tell this instance to move
- * the existing log file to somewhere else and start writing a new log file.
- * </p>
+ * 访问日志的阀门类
  */
 public class AccessLogValve extends AbstractAccessLogValve {
 
     private static final Log log = LogFactory.getLog(AccessLogValve.class);
 
     //------------------------------------------------------ Constructor
+    /**
+     * 实例化一个访问日志的闸门对象
+     */
     public AccessLogValve() {
         super();
     }
@@ -80,12 +64,12 @@ public class AccessLogValve extends AbstractAccessLogValve {
 
 
     /**
-     * The directory in which log files are created.
+     * 文件夹
      */
     private String directory = "logs";
 
     /**
-     * The prefix that is added to log file filenames.
+     * 访问日志的前缀
      */
     protected volatile String prefix = "access_log";
 
@@ -109,7 +93,7 @@ public class AccessLogValve extends AbstractAccessLogValve {
 
 
     /**
-     * The suffix that is added to log file filenames.
+     * 访问日志的后缀
      */
     protected volatile String suffix = "";
 
@@ -185,9 +169,8 @@ public class AccessLogValve extends AbstractAccessLogValve {
 
 
     /**
-     * Set the directory in which we create log files.
-     *
-     * @param directory The new log file directory
+     * 设置文件夹
+     * @param directory 文件夹对象
      */
     public void setDirectory(String directory) {
         this.directory = directory;
@@ -225,9 +208,8 @@ public class AccessLogValve extends AbstractAccessLogValve {
 
 
     /**
-     * Set the log file prefix.
-     *
-     * @param prefix The new log file prefix
+     * 设置访问日志的前缀
+     * @param prefix 前缀
      */
     public void setPrefix(String prefix) {
         this.prefix = prefix;
@@ -304,9 +286,8 @@ public class AccessLogValve extends AbstractAccessLogValve {
 
 
     /**
-     * Set the log file suffix.
-     *
-     * @param suffix The new log file suffix
+     * 设置访问日志的后缀
+     * @param suffix 后缀字符串
      */
     public void setSuffix(String suffix) {
         this.suffix = suffix;

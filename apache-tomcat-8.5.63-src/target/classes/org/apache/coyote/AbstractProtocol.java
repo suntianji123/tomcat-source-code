@@ -132,9 +132,8 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler,
 
 
     // ------------------------------- Properties managed by the ProtocolHandler
-
     /**
-     * Name of MBean for the Global Request Processor.
+     * RequestGroupInfo包装为动态的MBean 注册到MBeanServer仓库的索引名
      */
     protected ObjectName rgOname = null;
     public ObjectName getGlobalRequestProcessorMBeanName() {
@@ -235,7 +234,13 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler,
 
     @Override
     public Executor getExecutor() { return endpoint.getExecutor(); }
+
+    /**
+     * 设置协议处理器的执行器
+     * @param executor 执行器
+     */
     public void setExecutor(Executor executor) {
+        //设置协议处理器的执行器
         endpoint.setExecutor(executor);
     }
 
@@ -313,6 +318,11 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler,
     public int getConnectionTimeout() {
         return endpoint.getConnectionTimeout();
     }
+
+    /**
+     * 设置连接超时时间
+     * @param timeout 超时时间
+     */
     public void setConnectionTimeout(int timeout) {
         endpoint.setConnectionTimeout(timeout);
     }
@@ -321,6 +331,11 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler,
     public int getSoTimeout() {
         return getConnectionTimeout();
     }
+
+    /**
+     * 设置连接超时时间
+     * @param timeout 连接超时时间
+     */
     @Deprecated
     public void setSoTimeout(int timeout) {
         setConnectionTimeout(timeout);
@@ -364,24 +379,29 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler,
 
 
     /**
-     * The name will be prefix-address-port if address is non-null and
-     * prefix-port if the address is null.
-     *
-     * @return A name for this protocol instance that is appropriately quoted
-     *         for use in an ObjectName.
+     * 获取处理器名字 http-nio-8080
+     * @return
      */
     public String getName() {
         return ObjectName.quote(getNameInternal());
     }
 
 
+    /**
+     * 获取处理器名字 http-nio-8080
+     * @return
+     */
     private String getNameInternal() {
+        //获取名字前缀 http-nio
         StringBuilder name = new StringBuilder(getNamePrefix());
+        //http-nio-
         name.append('-');
         if (getAddress() != null) {
             name.append(getAddress().getHostAddress());
             name.append('-');
         }
+
+        //获取端口号
         int port = getPort();
         if (port == 0) {
             // Auto binding is in use. Check if port is known
@@ -393,6 +413,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler,
                 name.append(port);
             }
         } else {
+            //http-nio-8080
             name.append(port);
         }
         return name.toString();
@@ -501,6 +522,9 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler,
 
     // ----------------------------------------------------- JMX related methods
 
+    /**
+     * 协议处理器的领域值 Catalina
+     */
     protected String domain;
     protected ObjectName oname;
     protected MBeanServer mserver;
@@ -537,15 +561,22 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler,
         // NOOP
     }
 
+    /**
+     * 创建当前协议处理器对象包装为动态的MBean后 注册到MBeanServer仓库的索引名
+     * @return
+     * @throws MalformedObjectNameException
+     */
     private ObjectName createObjectName() throws MalformedObjectNameException {
-        // Use the same domain as the connector
+        //领域值为Catalina
         domain = getAdapter().getDomain();
 
         if (domain == null) {
             return null;
         }
 
+        //实例化StringBuiilder Catalina
         StringBuilder name = new StringBuilder(getDomain());
+        //Catalina:type=ProtocolHandler,port=8080
         name.append(":type=ProtocolHandler,port=");
         int port = getPort();
         if (port > 0) {
@@ -554,23 +585,30 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler,
             name.append("auto-");
             name.append(getNameIndex());
         }
+
+        //获取地址对象
         InetAddress address = getAddress();
         if (address != null) {
             name.append(",address=");
             name.append(ObjectName.quote(address.getHostAddress()));
         }
+
+        //实例化索引对象
         return new ObjectName(name.toString());
     }
 
 
     // ------------------------------------------------------- Lifecycle methods
 
-    /*
-     * NOTE: There is no maintenance of state or checking for valid transitions
-     * within this class. It is expected that the connector will maintain state
-     * and prevent invalid state transitions.
+    /**
+     * 初始化协议处理器
+     * 将当前协议处理器包装为动态的MBean 注册到MBeanServer仓库 索引名 Catalina:type=ProtocolHandler,port=8080
+     * 将RequestGroupInfo对象包装为动态的MBean 注册到MBeanServer仓库 索引名 Catalina:type=GlobalRequestProcessor,name=http-nio-8080
+     * 将endpoint对象包装为动态的MBean 注册到MBeanServer仓库 索引名 Catalina:type=ThreadPool,name=http-nio-8080
+     * 将endpoint对象的SocketProperties对象包装为动态的MBean 注册到MBeanServer仓库 索引名  Catalina:type=SocketProperties,name=http-nio-8080
+     * 打开endpoint的selector轮训器 启动工作线程 打开ServerSocketChannel绑定8080端口
+     * @throws Exception
      */
-
     @Override
     public void init() throws Exception {
         if (getLog().isInfoEnabled()) {
@@ -578,24 +616,36 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler,
         }
 
         if (oname == null) {
-            // Component not pre-registered so register it
+            // 创建索引 Catalina:type=ProtocolHandler,port=8080
             oname = createObjectName();
             if (oname != null) {
+                //将当前协议处理器包装为动态的MBean对象 注册到MBeanServer仓库
                 Registry.getRegistry(null, null).registerComponent(this, oname, null);
             }
         }
 
-        if (this.domain != null) {
+        if (this.domain != null) {//Catalina 不为null
+
+            //获取RequestGroupInfo注册到MBeanServer的索引名
+            //Catalina:type=GlobalRequestProcessor,name=http-nio-8080
             ObjectName rgOname = new ObjectName(domain + ":type=GlobalRequestProcessor,name=" + getName());
+
+            //设置RequestGroupInfo对象注册到MBeanServer仓库的索引名
             this.rgOname = rgOname;
+
+            //将处理器的RequestGroupInfo对象包装为动态的MBean对象 注册到MBeanServer仓库
             Registry.getRegistry(null, null).registerComponent(
                     getHandler().getGlobal(), rgOname, null);
         }
 
+        //endpointName
         String endpointName = getName();
-        endpoint.setName(endpointName.substring(1, endpointName.length()-1));
-        endpoint.setDomain(domain);
 
+        //设置endpoint name属性值 http-nio-8080
+        endpoint.setName(endpointName.substring(1, endpointName.length()-1));
+        //设置endpoint的领域 Catalina
+        endpoint.setDomain(domain);
+        //初始化endpoint属性
         endpoint.init();
     }
 
@@ -697,6 +747,10 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler,
     protected static class ConnectionHandler<S> implements AbstractEndpoint.Handler<S> {
 
         private final AbstractProtocol<S> proto;
+
+        /**
+         * 请求组信息对象
+         */
         private final RequestGroupInfo global = new RequestGroupInfo();
         private final AtomicLong registerCount = new AtomicLong(0);
         private final Map<S,Processor> connections = new ConcurrentHashMap<>();

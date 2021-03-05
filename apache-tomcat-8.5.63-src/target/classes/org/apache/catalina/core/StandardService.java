@@ -41,13 +41,8 @@ import org.apache.tomcat.util.res.StringManager;
 
 
 /**
- * Standard implementation of the <code>Service</code> interface.  The
- * associated Container is generally an instance of Engine, but this is
- * not required.
- *
- * @author Craig R. McClanahan
+ * 标准的服务类
  */
-
 public class StandardService extends LifecycleMBeanBase implements Service {
 
     private static final Log log = LogFactory.getLog(StandardService.class);
@@ -56,7 +51,7 @@ public class StandardService extends LifecycleMBeanBase implements Service {
     // ----------------------------------------------------- Instance Variables
 
     /**
-     * The name of this service.
+     * 服务名称
      */
     private String name = null;
 
@@ -68,7 +63,7 @@ public class StandardService extends LifecycleMBeanBase implements Service {
         StringManager.getManager(Constants.Package);
 
     /**
-     * The <code>Server</code> that owns this Service, if any.
+     * 服务的服务器对象
      */
     private Server server = null;
 
@@ -79,13 +74,17 @@ public class StandardService extends LifecycleMBeanBase implements Service {
 
 
     /**
-     * The set of Connectors associated with this Service.
+     * 连接器列表
      */
     protected Connector connectors[] = new Connector[0];
+
+    /**
+     * 访问连接器数组的锁
+     */
     private final Object connectorsLock = new Object();
 
     /**
-     *
+     * 执行器列表
      */
     protected final ArrayList<Executor> executors = new ArrayList<>();
 
@@ -94,7 +93,7 @@ public class StandardService extends LifecycleMBeanBase implements Service {
     private ClassLoader parentClassLoader = null;
 
     /**
-     * Mapper.
+     * 文件夹对象
      */
     protected final Mapper mapper = new Mapper();
 
@@ -107,6 +106,10 @@ public class StandardService extends LifecycleMBeanBase implements Service {
 
     // ------------------------------------------------------------- Properties
 
+    /**
+     * 获取问价夹对象
+     * @return
+     */
     @Override
     public Mapper getMapper() {
         return mapper;
@@ -119,17 +122,26 @@ public class StandardService extends LifecycleMBeanBase implements Service {
     }
 
 
+    /**
+     * 设置service的容器对象 比如StandardEngine引擎
+     * @param engine 引擎容器对象
+     */
     @Override
     public void setContainer(Engine engine) {
+        //获取老的引擎容器对象
         Engine oldEngine = this.engine;
-        if (oldEngine != null) {
+        if (oldEngine != null) {//存在老的容器
+            //设置老的引擎对象的service为null
             oldEngine.setService(null);
         }
+
+        //设置当前service对象的引擎为新的引擎
         this.engine = engine;
-        if (this.engine != null) {
+        if (this.engine != null) {//如果引擎不为null
+            //设置引擎的service为当前service
             this.engine.setService(this);
         }
-        if (getState().isAvailable()) {
+        if (getState().isAvailable()) {//如果当前服务可用 执行
             if (this.engine != null) {
                 try {
                     this.engine.start();
@@ -157,7 +169,7 @@ public class StandardService extends LifecycleMBeanBase implements Service {
             }
         }
 
-        // Report this property change to interested listeners
+        // 下发设置服务引擎容器事件
         support.firePropertyChange("container", oldEngine, this.engine);
     }
 
@@ -172,8 +184,7 @@ public class StandardService extends LifecycleMBeanBase implements Service {
 
 
     /**
-     * Set the name of this Service.
-     *
+     * 设置服务名称
      * @param name The new service name
      */
     @Override
@@ -192,9 +203,8 @@ public class StandardService extends LifecycleMBeanBase implements Service {
 
 
     /**
-     * Set the <code>Server</code> with which we are associated (if any).
-     *
-     * @param server The server that owns this Service
+     * 设置服务的服务器对象
+     * @param server 服务的服务器对象
      */
     @Override
     public void setServer(Server server) {
@@ -205,22 +215,25 @@ public class StandardService extends LifecycleMBeanBase implements Service {
     // --------------------------------------------------------- Public Methods
 
     /**
-     * Add a new Connector to the set of defined Connectors, and associate it
-     * with this Service's Container.
-     *
-     * @param connector The Connector to be added
+     * 添加连接器方法
+     * @param connector 连接器对象
      */
     @Override
     public void addConnector(Connector connector) {
 
-        synchronized (connectorsLock) {
+        synchronized (connectorsLock) {//连接加锁
+            //设置连接器的服务对象
             connector.setService(this);
+            //扩展数据
             Connector results[] = new Connector[connectors.length + 1];
+            //将原始连接器数组复制到新的数组
             System.arraycopy(connectors, 0, results, 0, connectors.length);
+            //将新添加的连接器设置到最后一个连接器数组的最后一个元素
             results[connectors.length] = connector;
+            //设置连接数组为新的连接器数组
             connectors = results;
 
-            if (getState().isAvailable()) {
+            if (getState().isAvailable()) {//获取服务的状态为可用
                 try {
                     connector.start();
                 } catch (LifecycleException e) {
@@ -230,7 +243,7 @@ public class StandardService extends LifecycleMBeanBase implements Service {
                 }
             }
 
-            // Report this property change to interested listeners
+            //下发service连接器数组改变事件
             support.firePropertyChange("connector", null, connector);
         }
 
@@ -367,14 +380,14 @@ public class StandardService extends LifecycleMBeanBase implements Service {
 
 
     /**
-     * Retrieves executor by name, null if not found
-     * @param executorName String
-     * @return Executor
+     * 根据执行器名 获取执行器
+     * @param executorName 执行器名
+     * @return
      */
     @Override
     public Executor getExecutor(String executorName) {
-        synchronized (executors) {
-            for (Executor executor: executors) {
+        synchronized (executors) {//加锁执行器数组
+            for (Executor executor: executors) {//遍历StanderService中所有的执行器 找出名字与遍历的执行器名相同的执行器
                 if (executorName.equals(executor.getName()))
                     return executor;
             }
@@ -402,22 +415,20 @@ public class StandardService extends LifecycleMBeanBase implements Service {
 
 
     /**
-     * Start nested components ({@link Executor}s, {@link Connector}s and
-     * {@link Container}s) and implement the requirements of
-     * {@link org.apache.catalina.util.LifecycleBase#startInternal()}.
-     *
-     * @exception LifecycleException if this component detects a fatal error
-     *  that prevents this component from being used
+     * 启动StandardService
+     * @throws LifecycleException
      */
     @Override
     protected void startInternal() throws LifecycleException {
 
         if(log.isInfoEnabled())
             log.info(sm.getString("standardService.start.name", this.name));
+
+        //设置状态启动中
         setState(LifecycleState.STARTING);
 
         // Start our defined Container first
-        if (engine != null) {
+        if (engine != null) {//首先启动StandardEngine 引擎
             synchronized (engine) {
                 engine.start();
             }
@@ -522,33 +533,36 @@ public class StandardService extends LifecycleMBeanBase implements Service {
 
 
     /**
-     * Invoke a pre-startup initialization. This is used to allow connectors
-     * to bind to restricted ports under Unix operating environments.
+     * 初始化服务
+     * @throws LifecycleException
      */
     @Override
     protected void initInternal() throws LifecycleException {
-
+        //将当前服务对象包装为动态的MBean对象 注册到MBeanServer仓库 索引名 type=service
         super.initInternal();
 
-        if (engine != null) {
+        if (engine != null) {//服务的引擎 不为null
+            //初始化引擎对象
             engine.init();
         }
 
         // Initialize any Executors
-        for (Executor executor : findExecutors()) {
+        for (Executor executor : findExecutors()) {//初始化所有的执行器
             if (executor instanceof JmxEnabled) {
                 ((JmxEnabled) executor).setDomain(getDomain());
             }
             executor.init();
         }
 
-        // Initialize mapper listener
+        // 初始化文件夹监听器对象
+        //将MappedListener对象包装为动态的MBean对象 注册到MBeanServer仓库 索引名type=Mapper
         mapperListener.init();
 
-        // Initialize our defined Connectors
-        synchronized (connectorsLock) {
-            for (Connector connector : connectors) {
+        //初始化连接器
+        synchronized (connectorsLock) {//连接锁加锁
+            for (Connector connector : connectors) {//遍历所有的连接器对象
                 try {
+                    //初始化连接器
                     connector.init();
                 } catch (Exception e) {
                     String message = sm.getString(
@@ -620,13 +634,20 @@ public class StandardService extends LifecycleMBeanBase implements Service {
     }
 
 
+    /**
+     * 获取领域
+     * @return
+     */
     @Override
     protected String getDomainInternal() {
+        //结果领域
         String domain = null;
+        //获取引擎对象
         Container engine = getContainer();
 
         // Use the engine name first
-        if (engine != null) {
+        if (engine != null) {//引擎对象存在
+            //获取引擎名
             domain = engine.getName();
         }
 

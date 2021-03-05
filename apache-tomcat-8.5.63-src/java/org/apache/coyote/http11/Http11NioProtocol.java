@@ -23,18 +23,16 @@ import org.apache.tomcat.util.net.NioEndpoint;
 
 
 /**
- * Abstract the protocol implementation, including threading, etc.
- * Processor is single threaded and specific to stream-based protocols,
- * will not fit Jk protocols like JNI.
- *
- * @author Remy Maucherat
- * @author Costin Manolache
+ * Http/1.1协议处理器
  */
 public class Http11NioProtocol extends AbstractHttp11JsseProtocol<NioChannel> {
 
     private static final Log log = LogFactory.getLog(Http11NioProtocol.class);
 
 
+    /**
+     * 实例化一个Http/1.1协议处理器
+     */
     public Http11NioProtocol() {
         super(new NioEndpoint());
     }
@@ -73,6 +71,10 @@ public class Http11NioProtocol extends AbstractHttp11JsseProtocol<NioChannel> {
 
     // ----------------------------------------------------- JMX related methods
 
+    /**
+     * 获取名字前缀 http-nio
+     * @return
+     */
     @Override
     protected String getNamePrefix() {
         if (isSSLEnabled()) {

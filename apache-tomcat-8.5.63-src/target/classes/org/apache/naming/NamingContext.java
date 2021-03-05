@@ -44,9 +44,7 @@ import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 
 /**
- * Catalina JNDI Context implementation.
- *
- * @author Remy Maucherat
+ * 命名上下对象
  */
 public class NamingContext implements Context {
 
@@ -67,10 +65,9 @@ public class NamingContext implements Context {
 
 
     /**
-     * Builds a naming context.
-     *
-     * @param env The environment to use to construct the naming context
-     * @param name The name of the associated Catalina Context
+     * 实例化一个命名上下文对象
+     * @param env 环境列表
+     * @param name 资源名
      */
     public NamingContext(Hashtable<String,Object> env, String name) {
         this(env, name, new HashMap<String,NamingEntry>());
@@ -78,11 +75,10 @@ public class NamingContext implements Context {
 
 
     /**
-     * Builds a naming context.
-     *
-     * @param env The environment to use to construct the naming context
-     * @param name The name of the associated Catalina Context
-     * @param bindings The initial bindings for the naming context
+     * 实例化一个命名上下文对象
+     * @param env 环境列表
+     * @param name 资源名
+     * @param bindings 绑定的命名实体对象
      */
     public NamingContext(Hashtable<String,Object> env, String name,
             HashMap<String,NamingEntry> bindings) {
@@ -117,13 +113,13 @@ public class NamingContext implements Context {
 
 
     /**
-     * Bindings in this Context.
+     * 实体名 | 实体 绑定的实体列表  比如 UserDatabase = ResourceRef{xxxx}
      */
     protected final HashMap<String,NamingEntry> bindings;
 
 
     /**
-     * Name of the associated Catalina Context.
+     * 资源名
      */
     protected final String name;
 
@@ -161,11 +157,10 @@ public class NamingContext implements Context {
 
 
     /**
-     * Retrieves the named object.
-     *
-     * @param name the name of the object to look up
-     * @return the object bound to name
-     * @exception NamingException if a naming exception is encountered
+     * 查找对象  比如UserDatabase
+     * @param name 名称
+     * @return
+     * @throws NamingException
      */
     @Override
     public Object lookup(String name)
@@ -175,16 +170,10 @@ public class NamingContext implements Context {
 
 
     /**
-     * Binds a name to an object. All intermediate contexts and the target
-     * context (that named by all but terminal atomic component of the name)
-     * must already exist.
-     *
-     * @param name the name to bind; may not be empty
-     * @param obj the object to bind; possibly null
-     * @exception NameAlreadyBoundException if name is already bound
-     * @exception javax.naming.directory.InvalidAttributesException if object
-     * did not supply all mandatory attributes
-     * @exception NamingException if a naming exception is encountered
+     * 绑定对象到当前上下文
+     * @param name 对象名称
+     * @param obj 对象
+     * @throws NamingException
      */
     @Override
     public void bind(Name name, Object obj)
@@ -194,18 +183,15 @@ public class NamingContext implements Context {
 
 
     /**
-     * Binds a name to an object.
-     *
-     * @param name the name to bind; may not be empty
-     * @param obj the object to bind; possibly null
-     * @exception NameAlreadyBoundException if name is already bound
-     * @exception javax.naming.directory.InvalidAttributesException if object
-     * did not supply all mandatory attributes
-     * @exception NamingException if a naming exception is encountered
+     * 将某个对象绑定定到当前对象
+     * @param name 索引名 比如UserDatabase
+     * @param obj 对象  ResouceRef{className="xxx",auth:catalina,factory:"xxx",pathname:"xxx"x}
+     * @throws NamingException
      */
     @Override
     public void bind(String name, Object obj)
         throws NamingException {
+        //将名字包装为综合名称 绑定对象到当前上下文
         bind(new CompositeName(name), obj);
     }
 
@@ -421,6 +407,7 @@ public class NamingContext implements Context {
         while ((!name.isEmpty()) && (name.get(0).length() == 0))
             name = name.getSuffix(1);
         if (name.isEmpty()) {
+            //迭代NamingContext中所有的名字实体的包装对象
             return new NamingContextBindingsEnumeration(bindings.values().iterator(), this);
         }
 
@@ -792,12 +779,11 @@ public class NamingContext implements Context {
 
 
     /**
-     * Retrieves the named object.
-     *
-     * @param name the name of the object to look up
-     * @param resolveLinks If true, the links will be resolved
-     * @return the object bound to name
-     * @exception NamingException if a naming exception is encountered
+     * 查找某个名字 对应的实际对象 比如引用对象对应的原始对象
+     * @param name 名字
+     * @param resolveLinks 是否解析链接
+     * @return
+     * @throws NamingException
      */
     protected Object lookup(Name name, boolean resolveLinks)
         throws NamingException {
@@ -810,6 +796,7 @@ public class NamingContext implements Context {
             return new NamingContext(env, this.name, bindings);
         }
 
+        //获取命名实体对象
         NamingEntry entry = bindings.get(name.get(0));
 
         if (entry == null) {
@@ -834,19 +821,26 @@ public class NamingContext implements Context {
                 } else {
                     return new InitialContext(env).lookup(link);
                 }
-            } else if (entry.type == NamingEntry.REFERENCE) {
+            } else if (entry.type == NamingEntry.REFERENCE) {//引用类型  比如UserDatabase ResourceRef
                 try {
+
+                    //根据引用对象 获取原始的对象
                     Object obj = NamingManager.getObjectInstance
                         (entry.value, name, this, env);
                     if(entry.value instanceof ResourceRef) {
+
+                        //引用的实体是否为单例
                         boolean singleton = Boolean.parseBoolean(
                                     (String) ((ResourceRef) entry.value).get(
                                         "singleton").getContent());
-                        if (singleton) {
+                        if (singleton) {//如果是单利  设置命名实体的类型为实体
                             entry.type = NamingEntry.ENTRY;
+                            //设置原始的对象
                             entry.value = obj;
                         }
                     }
+
+                    //不是单例 直接返回实例化的实体对象   MemoryDatabase对象
                     return obj;
                 } catch (NamingException e) {
                     throw e;
@@ -866,38 +860,35 @@ public class NamingContext implements Context {
 
 
     /**
-     * Binds a name to an object. All intermediate contexts and the target
-     * context (that named by all but terminal atomic component of the name)
-     * must already exist.
-     *
-     * @param name the name to bind; may not be empty
-     * @param obj the object to bind; possibly null
-     * @param rebind if true, then perform a rebind (ie, overwrite)
-     * @exception NameAlreadyBoundException if name is already bound
-     * @exception javax.naming.directory.InvalidAttributesException if object
-     * did not supply all mandatory attributes
-     * @exception NamingException if a naming exception is encountered
+     * 绑定对象到当前上下文对象
+     * @param name 对象名称
+     * @param obj 对象
+     * @param rebind 是否为重新绑定
+     * @throws NamingException
      */
     protected void bind(Name name, Object obj, boolean rebind)
         throws NamingException {
 
-        if (!checkWritable()) {
+        if (!checkWritable()) {//如果当前上下文对象为只读  直接返回
             return;
         }
 
-        while ((!name.isEmpty()) && (name.get(0).length() == 0))
+        while ((!name.isEmpty()) && (name.get(0).length() == 0))//名字长度为00
             name = name.getSuffix(1);
         if (name.isEmpty())
             throw new NamingException
                 (sm.getString("namingContext.invalidName"));
 
+        //获取之前以这个名字绑定的实体
         NamingEntry entry = bindings.get(name.get(0));
 
-        if (name.size() > 1) {
-            if (entry == null) {
+        if (name.size() > 1) {//多个名字 绑定同一个实体
+            if (entry == null) {//实体不存在
                 throw new NameNotFoundException(sm.getString(
                         "namingContext.nameNotBound", name, name.get(0)));
             }
+
+
             if (entry.type == NamingEntry.CONTEXT) {
                 if (rebind) {
                     ((Context) entry.value).rebind(name.getSuffix(1), obj);
@@ -909,12 +900,12 @@ public class NamingContext implements Context {
                     (sm.getString("namingContext.contextExpected"));
             }
         } else {
-            if ((!rebind) && (entry != null)) {
+            if ((!rebind) && (entry != null)) {//不是重新绑定 但是之前绑定过实体 抛出异常
                 throw new NameAlreadyBoundException
                     (sm.getString("namingContext.alreadyBound", name.get(0)));
             } else {
-                // Getting the type of the object and wrapping it within a new
-                // NamingEntry
+
+                //利用状态工厂将要绑定的对象 包装为带有状态的对象
                 Object toBind =
                     NamingManager.getStateToBind(obj, name, this, env);
                 if (toBind instanceof Context) {
@@ -923,7 +914,8 @@ public class NamingContext implements Context {
                 } else if (toBind instanceof LinkRef) {
                     entry = new NamingEntry(name.get(0), toBind,
                                             NamingEntry.LINK_REF);
-                } else if (toBind instanceof Reference) {
+                } else if (toBind instanceof Reference) {//将要绑定的对象为引用类型
+                    //实例化一个 命名实体对象 指定类型为引用类型
                     entry = new NamingEntry(name.get(0), toBind,
                                             NamingEntry.REFERENCE);
                 } else if (toBind instanceof Referenceable) {
@@ -934,6 +926,8 @@ public class NamingContext implements Context {
                     entry = new NamingEntry(name.get(0), toBind,
                                             NamingEntry.ENTRY);
                 }
+
+                //将实体注册到绑定列表
                 bindings.put(name.get(0), entry);
             }
         }

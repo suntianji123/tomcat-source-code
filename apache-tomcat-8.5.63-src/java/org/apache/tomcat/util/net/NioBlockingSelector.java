@@ -37,28 +37,56 @@ import org.apache.tomcat.util.collections.SynchronizedQueue;
 import org.apache.tomcat.util.collections.SynchronizedStack;
 import org.apache.tomcat.util.net.NioEndpoint.NioSocketWrapper;
 
+/**
+ * 阻塞的轮训器类
+ */
 public class NioBlockingSelector {
 
     private static final Log log = LogFactory.getLog(NioBlockingSelector.class);
 
+    /**
+     * 轮训器线程计算器
+     */
     private static AtomicInteger threadCounter = new AtomicInteger(0);
 
     private final SynchronizedStack<KeyReference> keyReferenceStack =
             new SynchronizedStack<>();
 
+    /**
+     * 共享的轮训器
+     */
     protected Selector sharedSelector;
 
+    /**
+     * 包装共享轮训器的轮训器
+     */
     protected BlockPoller poller;
+
+    /**
+     * 实例化一个阻塞的轮训器
+     */
     public NioBlockingSelector() {
 
     }
 
+    /**
+     * 打开阻塞的轮训器
+     * @param selector 轮训器
+     */
     public void open(Selector selector) {
+        //设置共享的轮训器
         sharedSelector = selector;
+
+        //实例化一个包装后的轮训器
         poller = new BlockPoller();
+        //设置jdk底层的轮训器为共享轮训器
         poller.selector = sharedSelector;
+        //设置轮训器为守护线程
         poller.setDaemon(true);
+        //设置轮训器工作线程名字
         poller.setName("NioBlockingSelector.BlockPoller-"+(threadCounter.getAndIncrement()));
+
+        //启动线程
         poller.start();
     }
 
@@ -211,9 +239,24 @@ public class NioBlockingSelector {
     }
 
 
+    /**
+     * 阻塞的轮训器
+     */
     protected static class BlockPoller extends Thread {
+
+        /**
+         * 轮训器是否可以运行
+         */
         protected volatile boolean run = true;
+
+        /**
+         * 轮训器对象
+         */
         protected Selector selector = null;
+
+        /**
+         * 任务队列
+         */
         protected final SynchronizedQueue<Runnable> events = new SynchronizedQueue<>();
         public void disable() { run = false; selector.wakeup();}
         protected final AtomicInteger wakeupCounter = new AtomicInteger(0);
@@ -259,34 +302,32 @@ public class NioBlockingSelector {
             wakeup();
         }
 
+        /**
+         * 执行任务队列中的所有任务
+         * @return
+         */
         public boolean events() {
             Runnable r = null;
 
-            /* We only poll and run the runnable events when we start this
-             * method. Further events added to the queue later will be delayed
-             * to the next execution of this method.
-             *
-             * We do in this way, because running event from the events queue
-             * may lead the working thread to add more events to the queue (for
-             * example, the worker thread may add another RunnableAdd event when
-             * waken up by a previous RunnableAdd event who got an invalid
-             * SelectionKey). Trying to consume all the events in an increasing
-             * queue till it's empty, will make the loop hard to be terminated,
-             * which will kill a lot of time, and greatly affect performance of
-             * the poller loop.
-             */
+            //获取任务数量
             int size = events.size();
             for (int i = 0; i < size && (r = events.poll()) != null; i++) {
+                //取出每一个任务 执行
                 r.run();
             }
 
+            //返回是否执行过任务
             return (size > 0);
         }
 
+        /**
+         * 启动轮训器的工作线程
+         */
         @Override
         public void run() {
-            while (run) {
+            while (run) {//正在运行
                 try {
+                    //先执行任务
                     events();
                     int keyCount = 0;
                     try {
@@ -295,6 +336,8 @@ public class NioBlockingSelector {
                             keyCount = selector.selectNow();
                         else {
                             wakeupCounter.set(-1);
+
+                            //最大等待1秒  获取有io事件的channel数量
                             keyCount = selector.select(1000);
                         }
                         wakeupCounter.set(0);
@@ -314,20 +357,27 @@ public class NioBlockingSelector {
                         continue;
                     }
 
+                    //获取有io事件的SelectionKey
                     Iterator<SelectionKey> iterator = keyCount > 0 ? selector.selectedKeys().iterator() : null;
 
                     // Walk through the collection of ready keys and dispatch
                     // any active event.
-                    while (run && iterator != null && iterator.hasNext()) {
+                    while (run && iterator != null && iterator.hasNext()) {//遍历selectionKey
                         SelectionKey sk = iterator.next();
+
+                        //获取包装NioSocketChannel的对象
                         NioSocketWrapper attachment = (NioSocketWrapper)sk.attachment();
                         try {
+
+                            //移除当前seletionkey
                             iterator.remove();
+
+
                             sk.interestOps(sk.interestOps() & (~sk.readyOps()));
-                            if ( sk.isReadable() ) {
+                            if ( sk.isReadable() ) {//如果selectionKey可读 有io事件
                                 countDown(attachment.getReadLatch());
                             }
-                            if (sk.isWritable()) {
+                            if (sk.isWritable()) {//可写
                                 countDown(attachment.getWriteLatch());
                             }
                         }catch (CancelledKeyException ckx) {
@@ -340,6 +390,8 @@ public class NioBlockingSelector {
                     log.error("",t);
                 }
             }
+
+            //清理任务队列
             events.clear();
             // If using a shared selector, the NioSelectorPool will also try and
             // close the selector. Try and avoid the ClosedSelectorException
@@ -360,6 +412,10 @@ public class NioBlockingSelector {
             }
         }
 
+        /**
+         * 计数器数量减一
+         * @param latch
+         */
         public void countDown(CountDownLatch latch) {
             if ( latch == null ) return;
             latch.countDown();

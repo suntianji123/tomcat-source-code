@@ -21,10 +21,7 @@ import javax.management.MBeanAttributeInfo;
 
 
 /**
- * <p>Internal configuration information for an <code>Attribute</code>
- * descriptor.</p>
- *
- * @author Craig R. McClanahan
+ * MangedBean的属性信息类
  */
 public class AttributeInfo extends FeatureInfo {
     private static final long serialVersionUID = -2511626862303972143L;
@@ -36,6 +33,10 @@ public class AttributeInfo extends FeatureInfo {
     protected String getMethod = null;
     protected String setMethod = null;
     protected boolean readable = true;
+
+    /**
+     * 属性是否可写
+     */
     protected boolean writeable = true;
     protected boolean is = false;
 
@@ -113,6 +114,10 @@ public class AttributeInfo extends FeatureInfo {
         return this.writeable;
     }
 
+    /**
+     * 设置属性是否可写
+     * @param writeable 是否可写
+     */
     public void setWriteable(boolean writeable) {
         this.writeable = writeable;
     }

@@ -57,93 +57,7 @@ import org.apache.tomcat.util.net.IPv6Utils;
 
 
 /**
- * <p>Abstract implementation of the <b>Valve</b> interface that generates a web
- * server access log with the detailed line contents matching a configurable
- * pattern. The syntax of the available patterns is similar to that supported by
- * the <a href="https://httpd.apache.org/">Apache HTTP Server</a>
- * <code>mod_log_config</code> module.</p>
- *
- * <p>Patterns for the logged message may include constant text or any of the
- * following replacement strings, for which the corresponding information
- * from the specified Response is substituted:</p>
- * <ul>
- * <li><b><code>%a</code></b> - Remote IP address
- * <li><b><code>%A</code></b> - Local IP address
- * <li><b><code>%b</code></b> - Bytes sent, excluding HTTP headers, or '-' if no bytes
- *     were sent
- * <li><b><code>%B</code></b> - Bytes sent, excluding HTTP headers
- * <li><b><code>%h</code></b> - Remote host name (or IP address if
- * <code>enableLookups</code> for the connector is false)
- * <li><b><code>%H</code></b> - Request protocol
- * <li><b><code>%l</code></b> - Remote logical username from identd (always returns '-')
- * <li><b><code>%m</code></b> - Request method
- * <li><b><code>%p</code></b> - Local port
- * <li><b><code>%q</code></b> - Query string (prepended with a '?' if it exists, otherwise
- *     an empty string
- * <li><b><code>%r</code></b> - First line of the request
- * <li><b><code>%s</code></b> - HTTP status code of the response
- * <li><b><code>%S</code></b> - User session ID
- * <li><b><code>%t</code></b> - Date and time, in Common Log Format format
- * <li><b><code>%u</code></b> - Remote user that was authenticated
- * <li><b><code>%U</code></b> - Requested URL path
- * <li><b><code>%v</code></b> - Local server name
- * <li><b><code>%D</code></b> - Time taken to process the request, in millis
- * <li><b><code>%T</code></b> - Time taken to process the request, in seconds
- * <li><b><code>%F</code></b> - Time taken to commit the response, in millis
- * <li><b><code>%I</code></b> - current Request thread name (can compare later with stacktraces)
- * <li><b><code>%X</code></b> - Connection status when response is completed:
- *   <ul>
- *   <li><code>X</code> = Connection aborted before the response completed.</li>
- *   <li><code>+</code> = Connection may be kept alive after the response is sent.</li>
- *   <li><code>-</code> = Connection will be closed after the response is sent.</li>
- *   </ul>
- * </ul>
- * <p>In addition, the caller can specify one of the following aliases for
- * commonly utilized patterns:</p>
- * <ul>
- * <li><b>common</b> - <code>%h %l %u %t "%r" %s %b</code>
- * <li><b>combined</b> -
- *   <code>%h %l %u %t "%r" %s %b "%{Referer}i" "%{User-Agent}i"</code>
- * </ul>
- *
- * <p>
- * There is also support to write information from the cookie, incoming
- * header, the Session or something else in the ServletRequest.<br>
- * It is modeled after the
- * <a href="https://httpd.apache.org/">Apache HTTP Server</a> log configuration
- * syntax:</p>
- * <ul>
- * <li><code>%{xxx}i</code> for incoming headers
- * <li><code>%{xxx}o</code> for outgoing response headers
- * <li><code>%{xxx}c</code> for a specific cookie
- * <li><code>%{xxx}r</code> xxx is an attribute in the ServletRequest
- * <li><code>%{xxx}s</code> xxx is an attribute in the HttpSession
- * <li><code>%{xxx}t</code> xxx is an enhanced SimpleDateFormat pattern
- * (see Configuration Reference document for details on supported time patterns)
- * </ul>
- *
- * <p>
- * Conditional logging is also supported. This can be done with the
- * <code>conditionUnless</code> and <code>conditionIf</code> properties.
- * If the value returned from ServletRequest.getAttribute(conditionUnless)
- * yields a non-null value, the logging will be skipped.
- * If the value returned from ServletRequest.getAttribute(conditionIf)
- * yields the null value, the logging will be skipped.
- * The <code>condition</code> attribute is synonym for
- * <code>conditionUnless</code> and is provided for backwards compatibility.
- * </p>
- *
- * <p>
- * For extended attributes coming from a getAttribute() call,
- * it is you responsibility to ensure there are no newline or
- * control characters.
- * </p>
- *
- * @author Craig R. McClanahan
- * @author Jason Brittain
- * @author Remy Maucherat
- * @author Takayuki Kaneko
- * @author Peter Rossbach
+ * 抽象的阀门类
  */
 public abstract class AbstractAccessLogValve extends ValveBase implements AccessLog {
 
@@ -189,7 +103,7 @@ public abstract class AbstractAccessLogValve extends ValveBase implements Access
     private boolean ipv6Canonical = false;
 
     /**
-     * The pattern used to format our access log lines.
+     * 设置匹配正则
      */
     protected String pattern = null;
 

@@ -29,23 +29,7 @@ import javax.naming.spi.ObjectFactory;
 
 
 /**
- * <p>JNDI object creation factory for <code>MemoryUserDatabase</code>
- * instances.  This makes it convenient to configure a user database
- * in the global JNDI resources associated with this Catalina instance,
- * and then link to that resource for web applications that administer
- * the contents of the user database.</p>
- *
- * <p>The <code>MemoryUserDatabase</code> instance is configured based
- * on the following parameter values:</p>
- * <ul>
- * <li><strong>pathname</strong> - Absolute or relative (to the directory
- *     path specified by the <code>catalina.base</code> system property)
- *     pathname to the XML file from which our user information is loaded,
- *     and to which it is stored.  [conf/tomcat-users.xml]</li>
- * </ul>
- *
- * @author Craig R. McClanahan
- * @since 4.1
+ * 生产用户数据库资源的工厂类
  */
 public class MemoryUserDatabaseFactory implements ObjectFactory {
 
@@ -54,19 +38,13 @@ public class MemoryUserDatabaseFactory implements ObjectFactory {
 
 
     /**
-     * <p>Create and return a new <code>MemoryUserDatabase</code> instance
-     * that has been configured according to the properties of the
-     * specified <code>Reference</code>.  If you instance can be created,
-     * return <code>null</code> instead.</p>
-     *
-     * @param obj The possibly null object containing location or
-     *  reference information that can be used in creating an object
-     * @param name The name of this object relative to <code>nameCtx</code>
-     * @param nameCtx The context relative to which the <code>name</code>
-     *  parameter is specified, or <code>null</code> if <code>name</code>
-     *  is relative to the default initial context
-     * @param environment The possibly null environment that is used in
-     *  creating this object
+     * 根据引用对象  生产一个内存用户数据库
+     * @param obj 引用对象
+     * @param name NamingEntry在NamingContext上下文的索引名对象 UserDatabase包装后的对象
+     * @param nameCtx NamingContext对象
+     * @param environment NamingContext对象的环境表
+     * @return
+     * @throws Exception
      */
     @Override
     public Object getObjectInstance(Object obj, Name name, Context nameCtx,
@@ -75,24 +53,32 @@ public class MemoryUserDatabaseFactory implements ObjectFactory {
 
         // We only know how to deal with <code>javax.naming.Reference</code>s
         // that specify a class name of "org.apache.catalina.UserDatabase"
-        if ((obj == null) || !(obj instanceof Reference)) {
+        if ((obj == null) || !(obj instanceof Reference)) {//绑定到NamingContext的对象不是引用类型 直接返回
             return null;
         }
+
+        //获取引用对象
         Reference ref = (Reference) obj;
-        if (!"org.apache.catalina.UserDatabase".equals(ref.getClassName())) {
+        if (!"org.apache.catalina.UserDatabase".equals(ref.getClassName())) {//className类型 不是用户数据库类型  直接返回
             return null;
         }
 
         // Create and configure a MemoryUserDatabase instance based on the
         // RefAddr values associated with this Reference
+        //实例化一个内存用户数据库对象
         MemoryUserDatabase database = new MemoryUserDatabase(name.toString());
+
+        //引用地址对象
         RefAddr ra = null;
 
+        //获取路径
         ra = ref.get("pathname");
         if (ra != null) {
+            //设置内存数据库的路径
             database.setPathname(ra.getContent().toString());
         }
 
+        //数据库是否为只读
         ra = ref.get("readonly");
         if (ra != null) {
             database.setReadonly(Boolean.parseBoolean(ra.getContent().toString()));
@@ -103,10 +89,11 @@ public class MemoryUserDatabaseFactory implements ObjectFactory {
             database.setWatchSource(Boolean.parseBoolean(ra.getContent().toString()));
         }
 
-        // Return the configured database instance
+        // 打开内存数据库
         database.open();
         // Don't try something we know won't work
-        if (!database.getReadonly())
+        if (!database.getReadonly())//不是只读数据库
+            //执行数据库的保存方法
             database.save();
         return database;
 

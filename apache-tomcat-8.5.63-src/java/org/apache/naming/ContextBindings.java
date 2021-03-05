@@ -40,13 +40,13 @@ public class ContextBindings {
     // -------------------------------------------------------------- Variables
 
     /**
-     * Bindings object - naming context. Keyed by object.
+     * 将对象与nameingContext对象 绑定 比如StandardServer | nameContext{name="/",{}}
      */
     private static final Hashtable<Object,Context> objectBindings = new Hashtable<>();
 
 
     /**
-     * Bindings thread - naming context. Keyed by thread.
+     * 线程的上下文对象
      */
     private static final Hashtable<Thread,Context> threadBindings = new Hashtable<>();
 
@@ -58,13 +58,13 @@ public class ContextBindings {
 
 
     /**
-     * Bindings class loader - naming context. Keyed by class loader.
+     * 类加载器 | 上下文对象  比如 URLClassLoader | NamingContext
      */
     private static final Hashtable<ClassLoader,Context> clBindings = new Hashtable<>();
 
 
     /**
-     * Bindings class loader - object. Keyed by class loader.
+     * 类加载器 | 对象  比如URLClassLoader | StandardServer
      */
     private static final Hashtable<ClassLoader,Object> clObjectBindings = new Hashtable<>();
 
@@ -89,11 +89,10 @@ public class ContextBindings {
 
 
     /**
-     * Binds an object and a naming context.
-     *
-     * @param obj       Object to bind with naming context
-     * @param context   Associated naming context instance
-     * @param token     Security token
+     * 将对象与命名上下文对象绑定
+     * @param obj 比如StandardServer
+     * @param context 比如nameingContext对象
+     * @param token 令牌对象
      */
     public static void bindContext(Object obj, Context context, Object token) {
         if (ContextAccessController.checkSecurityToken(obj, token)) {
@@ -205,24 +204,25 @@ public class ContextBindings {
 
 
     /**
-     * Binds a naming context to a class loader.
-     *
-     * @param obj           Object bound to the required naming context
-     * @param token         Security token
-     * @param classLoader   The class loader to bind to the naming context
-     *
-     * @throws NamingException If no naming context is bound to the provided
-     *         object
+     * 给类加载器指定上下文
+     * @param obj 对象
+     * @param token 访问对象的令牌对象
+     * @param classLoader 类加载器对象
+     * @throws NamingException
      */
     public static void bindClassLoader(Object obj, Object token,
             ClassLoader classLoader) throws NamingException {
-        if (ContextAccessController.checkSecurityToken(obj, token)) {
+        if (ContextAccessController.checkSecurityToken(obj, token)) {//判断对象是否注册的这个令牌对象
+            //获取对象的上下文对象
             Context context = objectBindings.get(obj);
             if (context == null) {
                 throw new NamingException
                         (sm.getString("contextBindings.unknownContext", obj));
             }
+
+            //设置类加载器的上下文对象
             clBindings.put(classLoader, context);
+            //设置类加载器加载对象
             clObjectBindings.put(classLoader, obj);
         }
     }
@@ -249,17 +249,17 @@ public class ContextBindings {
 
 
     /**
-     * Retrieves the naming context bound to a class loader.
-     *
-     * @return the naming context bound to current class loader or one of its
-     *         parents
-     *
-     * @throws NamingException If no naming context was bound
+     * 获取类加载器的NamingContext对象
+     * @return
+     * @throws NamingException
      */
     public static Context getClassLoader() throws NamingException {
+        //获取当前线程的类加载器
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
+        //结果Context对象
         Context context = null;
         do {
+            //根据类加载器获取Context对象   NamingContext对象
             context = clBindings.get(cl);
             if (context != null) {
                 return context;

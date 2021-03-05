@@ -37,16 +37,7 @@ import org.apache.tomcat.util.ExceptionUtils;
 import org.apache.tomcat.util.res.StringManager;
 
 /**
- * Standard implementation of a processing <b>Pipeline</b> that will invoke
- * a series of Valves that have been configured to be called in order.  This
- * implementation can be used for any type of Container.
- *
- * <b>IMPLEMENTATION WARNING</b> - This implementation assumes that no
- * calls to <code>addValve()</code> or <code>removeValve</code> are allowed
- * while a request is currently being processed.  Otherwise, the mechanism
- * by which per-thread state is maintained will need to be modified.
- *
- * @author Craig R. McClanahan
+ * 标准的管道对象
  */
 public class StandardPipeline extends LifecycleBase
         implements Pipeline, Contained {
@@ -68,14 +59,13 @@ public class StandardPipeline extends LifecycleBase
 
 
     /**
-     * Construct a new StandardPipeline instance that is associated with the
-     * specified Container.
-     *
-     * @param container The container we should be associated with
+     * 标准的管道对象
+     * @param container 管道所属的容器
      */
     public StandardPipeline(Container container) {
 
         super();
+        //设置容器
         setContainer(container);
 
     }
@@ -85,13 +75,13 @@ public class StandardPipeline extends LifecycleBase
 
 
     /**
-     * The basic Valve (if any) associated with this Pipeline.
+     * 基本阀门对象
      */
     protected Valve basic = null;
 
 
     /**
-     * The Container with which this Pipeline is associated.
+     * 容器对象
      */
     protected Container container = null;
 
@@ -241,27 +231,19 @@ public class StandardPipeline extends LifecycleBase
 
 
     /**
-     * <p>Set the Valve instance that has been distinguished as the basic
-     * Valve for this Pipeline (if any).  Prior to setting the basic Valve,
-     * the Valve's <code>setContainer()</code> will be called, if it
-     * implements <code>Contained</code>, with the owning Container as an
-     * argument.  The method may throw an <code>IllegalArgumentException</code>
-     * if this Valve chooses not to be associated with this Container, or
-     * <code>IllegalStateException</code> if it is already associated with
-     * a different Container.</p>
-     *
-     * @param valve Valve to be distinguished as the basic Valve
+     * 设置管道的基本阀门对象
+     * @param valve 基本阀门对象
      */
     @Override
     public void setBasic(Valve valve) {
 
-        // Change components if necessary
+        // 原始基本阀门对象
         Valve oldBasic = this.basic;
-        if (oldBasic == valve)
+        if (oldBasic == valve)//新的阀门对象和原始阀门对象相同  直接返回
             return;
 
         // Stop the old component if necessary
-        if (oldBasic != null) {
+        if (oldBasic != null) {//原始阀门对象不为null
             if (getState().isAvailable() && (oldBasic instanceof Lifecycle)) {
                 try {
                     ((Lifecycle) oldBasic).stop();
@@ -269,7 +251,7 @@ public class StandardPipeline extends LifecycleBase
                     log.error(sm.getString("standardPipeline.basic.stop"), e);
                 }
             }
-            if (oldBasic instanceof Contained) {
+            if (oldBasic instanceof Contained) {//原始基本阀门对象为容器
                 try {
                     ((Contained) oldBasic).setContainer(null);
                 } catch (Throwable t) {
@@ -279,9 +261,9 @@ public class StandardPipeline extends LifecycleBase
         }
 
         // Start the new component if necessary
-        if (valve == null)
+        if (valve == null)//新的阀门对象为null 直接返回
             return;
-        if (valve instanceof Contained) {
+        if (valve instanceof Contained) {//新的阀门对象为容器
             ((Contained) valve).setContainer(this.container);
         }
         if (getState().isAvailable() && valve instanceof Lifecycle) {
@@ -293,7 +275,7 @@ public class StandardPipeline extends LifecycleBase
             }
         }
 
-        // Update the pipeline
+
         Valve current = first;
         while (current != null) {
             if (current.getNext() == oldBasic) {
@@ -303,35 +285,23 @@ public class StandardPipeline extends LifecycleBase
             current = current.getNext();
         }
 
+        //基本阀门
         this.basic = valve;
 
     }
 
 
     /**
-     * <p>Add a new Valve to the end of the pipeline associated with this
-     * Container.  Prior to adding the Valve, the Valve's
-     * <code>setContainer()</code> method will be called, if it implements
-     * <code>Contained</code>, with the owning Container as an argument.
-     * The method may throw an
-     * <code>IllegalArgumentException</code> if this Valve chooses not to
-     * be associated with this Container, or <code>IllegalStateException</code>
-     * if it is already associated with a different Container.</p>
+     * 向管道中添加阀门对象
+     * @param valve 阀门对象
      *
-     * @param valve Valve to be added
-     *
-     * @exception IllegalArgumentException if this Container refused to
-     *  accept the specified Valve
-     * @exception IllegalArgumentException if the specified Valve refuses to be
-     *  associated with this Container
-     * @exception IllegalStateException if the specified Valve is already
-     *  associated with a different Container
      */
     @Override
     public void addValve(Valve valve) {
 
         // Validate that we can add this Valve
-        if (valve instanceof Contained)
+        if (valve instanceof Contained)//如果阀门对象是容器
+            //设置当前管道的容器对象
             ((Contained) valve).setContainer(this.container);
 
         // Start the new component if necessary
@@ -346,8 +316,11 @@ public class StandardPipeline extends LifecycleBase
         }
 
         // Add this Valve to the set associated with this Pipeline
-        if (first == null) {
+        if (first == null) {//第一个阀门对象为null
+            //当前阀门对象为第一个阀门对象
             first = valve;
+
+            //设置第一个阀门对象的下一个阀门对象为基本阀门对象
             valve.setNext(basic);
         } else {
             Valve current = first;
@@ -361,6 +334,7 @@ public class StandardPipeline extends LifecycleBase
             }
         }
 
+        //下发容器添加阀门事件
         container.fireContainerEvent(Container.ADD_VALVE_EVENT, valve);
     }
 

@@ -54,10 +54,7 @@ import org.apache.tomcat.util.res.StringManager;
 
 
 /**
- * Standard implementation of the <b>Server</b> interface, available for use
- * (but not required) when deploying and starting Catalina.
- *
- * @author Craig R. McClanahan
+ * 标准的服务器类
  */
 public final class StandardServer extends LifecycleMBeanBase implements Server {
 
@@ -68,16 +65,19 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
 
 
     /**
-     * Construct a default instance of this class.
+     * 实例化一个标准的服务器类
      */
     public StandardServer() {
 
         super();
 
+        //全局的命名资源
         globalNamingResources = new NamingResourcesImpl();
+
+        //设置全局的命名资源的容器
         globalNamingResources.setContainer(this);
 
-        if (isUseNaming()) {
+        if (isUseNaming()) {//使用名字的前缀
             namingContextListener = new NamingContextListener();
             addLifecycleListener(namingContextListener);
         } else {
@@ -91,30 +91,30 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
 
 
     /**
-     * Global naming resources context.
+     * 全局的名字上下文  UserDatabase ->ResouceRef
      */
     private javax.naming.Context globalNamingContext = null;
 
 
     /**
-     * Global naming resources.
+     * 全局的命名资源
      */
     private NamingResourcesImpl globalNamingResources = null;
 
 
     /**
-     * The naming context listener for this web application.
+     * 命名上下文监听器
      */
     private final NamingContextListener namingContextListener;
 
 
     /**
-     * The port number on which we wait for shutdown commands.
+     * 服务器端口号
      */
     private int port = 8005;
 
     /**
-     * The address on which we wait for shutdown commands.
+     * 服务器地址
      */
     private String address = "localhost";
 
@@ -127,14 +127,18 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
 
 
     /**
-     * The set of Services associated with this Server.
+     * 服务器的服务列表
      */
     private Service services[] = new Service[0];
+
+    /**
+     * 服务锁
+     */
     private final Object servicesLock = new Object();
 
 
     /**
-     * The shutdown command string we are looking for.
+     * shutdown名字
      */
     private String shutdown = "SHUTDOWN";
 
@@ -211,18 +215,21 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
 
 
     /**
-     * Set the global naming resources.
-     *
-     * @param globalNamingResources The new global naming resources
+     * 设置全局的命名资源
+     * @param globalNamingResources 命名资源
      */
     @Override
     public void setGlobalNamingResources
         (NamingResourcesImpl globalNamingResources) {
 
+        //记录原始命名资源
         NamingResourcesImpl oldGlobalNamingResources =
             this.globalNamingResources;
+        //设置全局的名字资源
         this.globalNamingResources = globalNamingResources;
+        //设置命名资源的容器
         this.globalNamingResources.setContainer(this);
+        //下发全局命名资源属性改变事件
         support.firePropertyChange("globalNamingResources",
                                    oldGlobalNamingResources,
                                    this.globalNamingResources);
@@ -337,22 +344,26 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
 
 
     /**
-     * Add a new Service to the set of defined Services.
-     *
-     * @param service The Service to be added
+     * 添加服务
+     * @param service 将要被添加的服务对象
      */
     @Override
     public void addService(Service service) {
 
+        //设置服务对象的服务器对象
         service.setServer(this);
 
-        synchronized (servicesLock) {
+        synchronized (servicesLock) {//打开服务锁
+            //实例化一个新的服务数组
             Service results[] = new Service[services.length + 1];
+            //复制原始服务数组到新的服务数组
             System.arraycopy(services, 0, results, 0, services.length);
+            //设置数组的最后一个元素为添加的服务器
             results[services.length] = service;
+            //将服务数组指向新的服务数组
             services = results;
 
-            if (getState().isAvailable()) {
+            if (getState().isAvailable()) {//服务器已经启动
                 try {
                     service.start();
                 } catch (LifecycleException e) {
@@ -360,7 +371,7 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
                 }
             }
 
-            // Report this property change to interested listeners
+            //下发服务器的服务变更事件
             support.firePropertyChange("service", null, service);
         }
 
@@ -546,7 +557,8 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
 
 
     /**
-     * @return the set of Services defined within this Server.
+     * 当前服务器下的服务列表
+     * @return
      */
     @Override
     public Service[] findServices() {
@@ -731,7 +743,8 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
 
 
     /**
-     * @return <code>true</code> if naming should be used.
+     * 是否使用名字前缀
+     * @return
      */
     private boolean isUseNaming() {
         boolean useNaming = true;
@@ -746,22 +759,30 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
 
 
     /**
-     * Start nested components ({@link Service}s) and implement the requirements
-     * of {@link org.apache.catalina.util.LifecycleBase#startInternal()}.
-     *
-     * @exception LifecycleException if this component detects a fatal error
-     *  that prevents this component from being used
+     * 启动本地周期周期对象
+     * @throws LifecycleException
      */
     @Override
     protected void startInternal() throws LifecycleException {
 
+        //下发根据配置启动事件
+        //实例化一个命名上下文 namingContext对象
+        //设置访问/ 目录的令牌对象为namingResourceImpl的令牌对象
+        //向NamingContext绑定UserDatabase 对应的资源引用对象 ResourceRef
+        //设置返回StandardServer的令牌对象为namingResourceImpl的令牌对象
+        //设置StandardServer的上下文对象为NamingContext对象
+        //设置StandardServer类加载器classLoader的上下文对象为NamingContext对象
+        //设置StandardServer类加载器classLoader加载对象为StandardServer
         fireLifecycleEvent(CONFIGURE_START_EVENT, null);
+
+        //设置服务器的状态启动中
         setState(LifecycleState.STARTING);
 
+        //启动全局的资源对象
         globalNamingResources.start();
 
         // Start our defined Services
-        synchronized (servicesLock) {
+        synchronized (servicesLock) {//启动所有的StandardService
             for (Service service : services) {
                 service.start();
             }
@@ -793,38 +814,38 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
     }
 
     /**
-     * Invoke a pre-startup initialization. This is used to allow connectors
-     * to bind to restricted ports under Unix operating environments.
+     * 初始化本地
+     * @throws LifecycleException
      */
     @Override
     protected void initInternal() throws LifecycleException {
 
+        //初始化本地   将StandardServer包装为动态的MBean对象 注册到MBeanServer仓库  返回MBean对象在仓库中的索引名
         super.initInternal();
 
-        // Register global String cache
-        // Note although the cache is global, if there are multiple Servers
-        // present in the JVM (may happen when embedding) then the same cache
-        // will be registered under multiple names
+        //实例化一个字符串缓存对象   将字符串缓存对象包装为动态的MBean对象 注册到MBeanServer仓库 返回MBean对象在仓库中的索引名
         onameStringCache = register(new StringCache(), "type=StringCache");
 
-        // Register the MBeanFactory
+        //实例化一个生产MBean的工厂对象
         MBeanFactory factory = new MBeanFactory();
+        //设置工厂的容器为StandardServer
         factory.setContainer(this);
         onameMBeanFactory = register(factory, "type=MBeanFactory");
 
-        // Register the naming resources
+        // 全局命名资源初始化
         globalNamingResources.init();
 
         // Populate the extension validator with JARs from common and shared
         // class loaders
         if (getCatalina() != null) {
+            //获取Catalina对象的URLClassLoader对象
             ClassLoader cl = getCatalina().getParentClassLoader();
             // Walk the class loader hierarchy. Stop at the system class loader.
             // This will add the shared (if present) and common class loaders
             while (cl != null && cl != ClassLoader.getSystemClassLoader()) {
                 if (cl instanceof URLClassLoader) {
                     URL[] urls = ((URLClassLoader) cl).getURLs();
-                    for (URL url : urls) {
+                    for (URL url : urls) {//遍历所有的文件
                         if (url.getProtocol().equals("file")) {
                             try {
                                 File f = new File (url.toURI());
@@ -841,8 +862,9 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
                 cl = cl.getParent();
             }
         }
-        // Initialize our defined Services
+        // 初始化所有的服务
         for (Service service : services) {
+            //初始化服务
             service.init();
         }
     }
@@ -889,34 +911,48 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
                                    this.parentClassLoader);
     }
 
-
+    /**
+     * StringCache对象存储到MBeanServer仓库后  StringCache对象在MBeanServer仓库中的索引名
+     * 值为： type=StringCache
+     */
     private ObjectName onameStringCache;
+
+    /**
+     * MBeanFactory对象存储到MBeanServer仓库后 MBeanFactory对象在MBeanServer仓库中的索引名
+     * 值为：type=MBeanFactory
+     */
     private ObjectName onameMBeanFactory;
 
     /**
-     * Obtain the MBean domain for this server. The domain is obtained using
-     * the following search order:
-     * <ol>
-     * <li>Name of first {@link org.apache.catalina.Engine}.</li>
-     * <li>Name of first {@link Service}.</li>
-     * </ol>
+     * 获取本地领域
+     * @return
      */
     @Override
     protected String getDomainInternal() {
 
+        //领域
         String domain = null;
 
+        //查找服务列表
         Service[] services = findServices();
-        if (services.length > 0) {
+        if (services.length > 0) {//服务的长度大于00
+            //获取第0个服务
             Service service = services[0];
-            if (service != null) {
+            if (service != null) {//存在第0-个服务
+                //获取服务的领域 Server/Service/Engine name属性值
                 domain = service.getDomain();
             }
         }
+
+        //返回领域
         return domain;
     }
 
 
+    /**
+     * 获取名字属性值
+     * @return
+     */
     @Override
     protected final String getObjectNameKeyProperties() {
         return "type=Server";

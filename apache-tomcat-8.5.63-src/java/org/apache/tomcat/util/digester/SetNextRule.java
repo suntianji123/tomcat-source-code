@@ -37,13 +37,9 @@ public class SetNextRule extends Rule {
     // ----------------------------------------------------------- Constructors
 
     /**
-     * Construct a "set next" rule with the specified method name.
-     *
-     * @param methodName Method name of the parent method to call
-     * @param paramType Java class of the parent method's argument
-     *  (if you wish to use a primitive type, specify the corresponding
-     *  Java wrapper class instead, such as <code>java.lang.Boolean</code>
-     *  for a <code>boolean</code> parameter)
+     * 设置标签对象的父标签对象的方法名 以及参数类型
+     * @param methodName 方法名
+     * @param paramType 参数类型
      */
     public SetNextRule(String methodName,
                        String paramType) {
@@ -58,13 +54,13 @@ public class SetNextRule extends Rule {
 
 
     /**
-     * The method name to call on the parent object.
+     * 标签对象所属的父标签对象的方法名
      */
     protected String methodName = null;
 
 
     /**
-     * The Java class name of the parameter type expected by the method.
+     * 标签对象所属的父标签对象的方法参数类型
      */
     protected String paramType = null;
 
@@ -115,19 +111,20 @@ public class SetNextRule extends Rule {
     }
 
     /**
-     * Process the end of this element.
+     * 标签的结束方法
+     * @param namespace 规则的命名空间
+     *                  string if the parser is not namespace aware or the
+     *                  element has no namespace
+     * @param name 标签名
      *
-     * @param namespace the namespace URI of the matching element, or an
-     *   empty string if the parser is not namespace aware or the element has
-     *   no namespace
-     * @param name the local name if the parser is namespace aware, or just
-     *   the element name otherwise
+     * @throws Exception
      */
     @Override
     public void end(String namespace, String name) throws Exception {
 
-        // Identify the objects to be used
+        // 获取当前标签对象
         Object child = digester.peek(0);
+        //获取当前标签对象父标签对象
         Object parent = digester.peek(1);
         if (digester.log.isDebugEnabled()) {
             if (parent == null) {
@@ -141,7 +138,7 @@ public class SetNextRule extends Rule {
             }
         }
 
-        // Call the specified method
+        //调用方法 将当前标签对象 设置父标签对象的属性上
         IntrospectionUtils.callMethod1(parent, methodName,
                 child, paramType, digester.getClassLoader());
 

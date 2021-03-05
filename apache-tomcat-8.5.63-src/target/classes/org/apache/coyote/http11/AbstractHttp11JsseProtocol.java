@@ -42,6 +42,11 @@ public abstract class AbstractHttp11JsseProtocol<S>
     }
 
     public String getSslImplementationName() { return getEndpoint().getSslImplementationName(); }
+
+    /**
+     * 设置ssl证书实现器名称
+     * @param s ssl证书实现器名称
+     */
     public void setSslImplementationName(String s) { getEndpoint().setSslImplementationName(s); }
 
 

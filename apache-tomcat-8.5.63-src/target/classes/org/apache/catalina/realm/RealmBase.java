@@ -193,15 +193,16 @@ public abstract class RealmBase extends LifecycleMBeanBase implements org.apache
 
 
     /**
-     * Set the Container with which this Realm has been associated.
-     *
-     * @param container The associated Container
+     * 设置基本领域的容器
+     * @param container 容器对象
      */
     @Override
     public void setContainer(Container container) {
-
+        //老的容器对象
         Container oldContainer = this.container;
+        //设置容器对象
         this.container = container;
+        //下发领域对象 设置容器事件
         support.firePropertyChange("container", oldContainer, this.container);
 
     }
@@ -1110,10 +1111,11 @@ public abstract class RealmBase extends LifecycleMBeanBase implements org.apache
      */
     @Override
     protected void startInternal() throws LifecycleException {
-        if (credentialHandler == null) {
+        if (credentialHandler == null) {//凭证处理对象
             credentialHandler = new MessageDigestCredentialHandler();
         }
 
+        //设置状态为启动中
         setState(LifecycleState.STARTING);
     }
 
@@ -1536,6 +1538,12 @@ public abstract class RealmBase extends LifecycleMBeanBase implements org.apache
         return container.getDomain();
     }
 
+    /**
+     * 领域路径
+     * 最0层为 /realm0
+     * 第1层为 /realm0/realm1
+     * 第2层为 /realm0/realm1/realm2
+     */
     protected String realmPath = "/realm0";
 
     public String getRealmPath() {

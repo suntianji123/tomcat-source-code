@@ -171,8 +171,9 @@ public abstract class AbstractEndpoint<S> {
      */
     protected volatile boolean paused = false;
 
+
     /**
-     * Are we using an internal executor
+     * 是否使用本地执行器 如果exeutor为nulll  则使用本地执行器
      */
     protected volatile boolean internalExecutor = true;
 
@@ -183,7 +184,7 @@ public abstract class AbstractEndpoint<S> {
     private volatile LimitLatch connectionLimitLatch = null;
 
     /**
-     * Socket properties
+     * Socket属性值对象
      */
     protected SocketProperties socketProperties = new SocketProperties();
     public SocketProperties getSocketProperties() {
@@ -445,7 +446,7 @@ public abstract class AbstractEndpoint<S> {
 
 
     /**
-     * Acceptor thread count.
+     * 接收器线程数量
      */
     protected int acceptorThreadCount = 1;
 
@@ -506,11 +507,19 @@ public abstract class AbstractEndpoint<S> {
     }
 
     /**
-     * External Executor based thread pool.
+     * 协议处理器的执行器对象
      */
     private Executor executor = null;
+
+    /**
+     * 设置协议处理器的执行器对象
+     * @param executor 执行器对象
+     */
     public void setExecutor(Executor executor) {
+        //设置执行器
         this.executor = executor;
+
+        //如果制定了执行器 则不适用本地执行器
         this.internalExecutor = (executor == null);
     }
     public Executor getExecutor() { return executor; }
@@ -582,6 +591,10 @@ public abstract class AbstractEndpoint<S> {
     private boolean bindOnInit = true;
     public boolean getBindOnInit() { return bindOnInit; }
     public void setBindOnInit(boolean b) { this.bindOnInit = b; }
+
+    /**
+     * 绑定状态 初始值为没有绑定
+     */
     private volatile BindState bindState = BindState.UNBOUND;
 
     /**
@@ -633,6 +646,11 @@ public abstract class AbstractEndpoint<S> {
      * @return The current socket timeout for sockets created by this endpoint
      */
     public int getConnectionTimeout() { return socketProperties.getSoTimeout(); }
+
+    /**
+     * 设置连接超时时间
+     * @param soTimeout 连接超时时间
+     */
     public void setConnectionTimeout(int soTimeout) { socketProperties.setSoTimeout(soTimeout); }
     @Deprecated
     public int getSoTimeout() { return getConnectionTimeout(); }
@@ -745,15 +763,20 @@ public abstract class AbstractEndpoint<S> {
     }
 
     /**
-     * Name of the thread pool, which will be used for naming child threads.
+     * endpoint的name属性值 http-nio-8080
      */
     private String name = "TP";
+
+    /**
+     * 设置endpoint属性值 http-nio-8080
+     * @param name
+     */
     public void setName(String name) { this.name = name; }
     public String getName() { return name; }
 
 
     /**
-     * Name of domain to use for JMX registration.
+     * 领域 Catalina
      */
     private String domain;
     public void setDomain(String domain) { this.domain = domain; }
@@ -1133,24 +1156,41 @@ public abstract class AbstractEndpoint<S> {
      * prevent invalid state transitions.
      */
 
+    /**
+     * ServerSocketChannel绑定端口号
+     * @throws Exception
+     */
     public abstract void bind() throws Exception;
     public abstract void unbind() throws Exception;
     public abstract void startInternal() throws Exception;
     public abstract void stopInternal() throws Exception;
 
+    /**
+     * 初始化endpoint对象
+     * @throws Exception
+     */
     public void init() throws Exception {
-        if (bindOnInit) {
+        if (bindOnInit) {//在调用init方法的时候 是否绑定  默认为true
+            //绑定方法
             bind();
+
+            //设置绑定状态 为初始化绑定
             bindState = BindState.BOUND_ON_INIT;
         }
-        if (this.domain != null) {
+        if (this.domain != null) {//领域不为null Catalina
             // Register endpoint (as ThreadPool - historical name)
+            //获取将当前对象注册到MBeanServer仓库的索引名 Catalina:type=ThreadPool,name=http-nio-8080
             oname = new ObjectName(domain + ":type=ThreadPool,name=\"" + getName() + "\"");
+
+            //将当前对象包装为动态的MBean对象 注册到MBeanServer仓库
             Registry.getRegistry(null, null).registerComponent(this, oname, null);
 
+            //获取SocketProperties对象注册到MBeanServer仓库的索引名 Catalina:type=SocketProperties,name=http-nio-8080
             ObjectName socketPropertiesOname = new ObjectName(domain +
                     ":type=SocketProperties,name=\"" + getName() + "\"");
             socketProperties.setObjectName(socketPropertiesOname);
+
+            //将SocketProperties属性值对象包装为动态的MBean 注册到MBeanServer仓库
             Registry.getRegistry(null, null).registerComponent(socketProperties, socketPropertiesOname, null);
 
             for (SSLHostConfig sslHostConfig : findSslHostConfigs()) {

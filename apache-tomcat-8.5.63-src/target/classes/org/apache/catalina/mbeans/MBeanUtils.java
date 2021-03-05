@@ -51,9 +51,7 @@ public class MBeanUtils {
     // ------------------------------------------------------- Static Variables
 
     /**
-     * The set of exceptions to the normal rules used by
-     * <code>createManagedBean()</code>.  The first element of each pair
-     * is a class name, and the second element is the managed bean name.
+     * 创建某个对象存储MBeanServer的索引名时候 如果对象的全类名为数组指定的类名 将使用固定的名字
      */
     private static final String exceptions[][] = {
         { "org.apache.catalina.users.MemoryGroup",
@@ -66,13 +64,13 @@ public class MBeanUtils {
 
 
     /**
-     * The configuration information registry for our managed beans.
+     * 登记处对象
      */
     private static Registry registry = createRegistry();
 
 
     /**
-     * The <code>MBeanServer</code> for this application.
+     * 存储MBean的MBeanServer仓库对象
      */
     private static MBeanServer mserver = createServer();
 
@@ -80,42 +78,41 @@ public class MBeanUtils {
     // --------------------------------------------------------- Static Methods
 
     /**
-     * Create and return the name of the <code>ManagedBean</code> that
-     * corresponds to this Catalina component.
-     *
-     * @param component The component for which to create a name
+     * 创建存储到MBeanServer仓库中的索引名
+     * @param component 将要被包装为动态的MBean对象
+     * @return
      */
     static String createManagedName(Object component) {
 
-        // Deal with exceptions to the standard rule
+        // 获取对象的全类名
         String className = component.getClass().getName();
-        for (String[] exception : exceptions) {
+        for (String[] exception : exceptions) {//如果是指定的全类名 将用固定的名字代替
             if (className.equals(exception[0])) {
                 return exception[1];
             }
         }
 
-        // Perform the standard transformation
+        //获取最后一个.下标
         int period = className.lastIndexOf('.');
         if (period >= 0)
             className = className.substring(period + 1);
+        //返回类名（不是全类名 ）
         return className;
 
     }
 
 
     /**
-     * Create, register, and return an MBean for this
-     * <code>ContextEnvironment</code> object.
-     *
-     * @param environment The ContextEnvironment to be managed
-     * @return a new MBean
-     * @exception Exception if an MBean cannot be created or registered
+     * 将某个资源环境对象 包装为动态的MBean对象  存储到MBeanServer仓库
+     * @param environment 环境资源对象
+     * @return 对象被包装的动态的MBean对象
+     * @throws Exception
      */
     public static DynamicMBean createMBean(ContextEnvironment environment)
         throws Exception {
-
+        //获取对象在MBeanServer仓库中的索引名
         String mname = createManagedName(environment);
+        //查找仓库中是否已经存在一个使用当前索引的MBean对象
         ManagedBean managed = registry.findManagedBean(mname);
         if (managed == null) {
             Exception e = new Exception("ManagedBean is not found with "+mname);
@@ -136,30 +133,39 @@ public class MBeanUtils {
 
 
     /**
-     * Create, register, and return an MBean for this
-     * <code>ContextResource</code> object.
-     *
-     * @param resource The ContextResource to be managed
-     * @return a new MBean
-     * @exception Exception if an MBean cannot be created or registered
+     * 为资源创建动态的MBean对象
+     * @param resource 资源对象
+     * @return
+     * @throws Exception
      */
     public static DynamicMBean createMBean(ContextResource resource)
         throws Exception {
 
+        //获取对象的简写类名
         String mname = createManagedName(resource);
+        //查找当前资源对象的ManagedBean对象
         ManagedBean managed = registry.findManagedBean(mname);
-        if (managed == null) {
+        if (managed == null) {//不存在ManagedBean 说明当前资源对象 不能注册到MBeanServer仓库
             Exception e = new Exception("ManagedBean is not found with "+mname);
             throw new MBeanException(e);
         }
+
+        //获取ManagedBean对象管理的领域 Catalina
         String domain = managed.getDomain();
-        if (domain == null)
+        if (domain == null)//没有设置领域
+            //默认的领域
             domain = mserver.getDefaultDomain();
+
+        //为资源对象创建一个动态的MBean对象
         DynamicMBean mbean = managed.createMBean(resource);
+
+        //创建将动态MBean对象存储到仓库的索引索引 比如Catalina:type=Resource,resourcetype=Global,class=org.apache.catalina.UserDatabase,name=UserDatabase
         ObjectName oname = createObjectName(domain, resource);
-        if( mserver.isRegistered( oname ))  {
+        if( mserver.isRegistered( oname ))  {//如果仓库中已经包含这个索引名的对象 将之前注册的MBean对象 取消注册
             mserver.unregisterMBean(oname);
         }
+
+        //将资源对象包装为动态的MBean对象 注册到MBeanServer仓库
         mserver.registerMBean(mbean, oname);
         return mbean;
 
@@ -291,30 +297,35 @@ public class MBeanUtils {
 
 
     /**
-     * Create, register, and return an MBean for this
-     * <code>UserDatabase</code> object.
-     *
-     * @param userDatabase The UserDatabase to be managed
-     * @return a new MBean
-     * @exception Exception if an MBean cannot be created or registered
+     * 创建动态的MBean对象
+     * @param userDatabase 用户数据库对象
+     * @return
+     * @throws Exception
      */
     static DynamicMBean createMBean(UserDatabase userDatabase)
         throws Exception {
 
+        //简写类名MemoryDatabase
         String mname = createManagedName(userDatabase);
+        //查找ManagedBean对象
         ManagedBean managed = registry.findManagedBean(mname);
         if (managed == null) {
             Exception e = new Exception("ManagedBean is not found with "+mname);
             throw new MBeanException(e);
         }
+        //获取领域
         String domain = managed.getDomain();
         if (domain == null)
             domain = mserver.getDefaultDomain();
+        //创建动态的MBean对象
         DynamicMBean mbean = managed.createMBean(userDatabase);
+        //生成动态的MBean对象的索引名
         ObjectName oname = createObjectName(domain, userDatabase);
         if( mserver.isRegistered( oname ))  {
             mserver.unregisterMBean(oname);
         }
+
+        //将动态的MBean对象 注册到MBeanServer仓库
         mserver.registerMBean(mbean, oname);
         return mbean;
 
@@ -355,23 +366,25 @@ public class MBeanUtils {
 
 
     /**
-     * Create an <code>ObjectName</code> for this
-     * <code>ContextResource</code> object.
-     *
-     * @param domain Domain in which this name is to be created
-     * @param resource The ContextResource to be named
-     * @return a new object name
-     * @exception MalformedObjectNameException if a name cannot be created
+     * 创建资源对象存储到MBeanServer仓库后的索引名
+     * @param domain 领域
+     * @param resource 资源对象
+     * @return
+     * @throws MalformedObjectNameException
      */
     public static ObjectName createObjectName(String domain,
                                               ContextResource resource)
         throws MalformedObjectNameException {
 
+        //结果索引对象
         ObjectName name = null;
         String quotedResourceName = ObjectName.quote(resource.getName());
+
+        //获取容器对象  比如StandardServer
         Object container =
                 resource.getNamingResources().getContainer();
         if (container instanceof Server) {
+            //索引名Catalina:type=Resource,resourcetype=Global,class=org.apache.catalina.UserDatabase,name=UserDatabase
             name = new ObjectName(domain + ":type=Resource" +
                     ",resourcetype=Global,class=" + resource.getType() +
                     ",name=" + quotedResourceName);
@@ -533,29 +546,62 @@ public class MBeanUtils {
     }
 
     /**
-     * Create and configure (if necessary) and return the registry of
-     * managed object descriptions.
-     * @return the singleton registry
+     * 解析包下的mbeans-descriptors.xml文件 创建MangedBean对象 并将ManagedBean对象  通过登记对象注册到MBeanServer仓库
+     * @return
      */
     public static synchronized Registry createRegistry() {
-        if (registry == null) {
+        if (registry == null) {//登记处对象 不存在
+            //创建访问MBeanServer的登记处对象
             registry = Registry.getRegistry(null, null);
+            //获取当前对象的加载器
             ClassLoader cl = MBeanUtils.class.getClassLoader();
 
+            //解析org/apache/catalina/mbeans/mbeans-descriptors.xml文件 创建ManagedBean对象  并将ManagedBean对象 注册到MBeanServer仓库
             registry.loadDescriptors("org.apache.catalina.mbeans",  cl);
+
+            //解析org/apache/catalina/authenticatorm/beans-descriptors.xml文件 创建ManagedBean对象  并将ManagedBean对象 注册到MBeanServer仓库
             registry.loadDescriptors("org.apache.catalina.authenticator", cl);
+
+            //解析org/apache/catalina/core/beans-descriptors.xml文件 创建ManagedBean对象  并将ManagedBean对象 注册到MBeanServer仓库
             registry.loadDescriptors("org.apache.catalina.core", cl);
+
+            //解析org/apache/catalina/beans-descriptors.xml文件 创建ManagedBean对象  并将ManagedBean对象 注册到MBeanServer仓库
             registry.loadDescriptors("org.apache.catalina", cl);
+
+            //解析org/apache/catalina/deploy/beans-descriptors.xml文件 创建ManagedBean对象  并将ManagedBean对象 注册到MBeanServer仓库
             registry.loadDescriptors("org.apache.catalina.deploy", cl);
+
+            //解析org/apache/catalina/loader/beans-descriptors.xml文件 创建ManagedBean对象  并将ManagedBean对象 注册到MBeanServer仓库
             registry.loadDescriptors("org.apache.catalina.loader", cl);
+
+            //解析org/apache/catalina/realm/beans-descriptors.xml文件 创建ManagedBean对象  并将ManagedBean对象 注册到MBeanServer仓库
             registry.loadDescriptors("org.apache.catalina.realm", cl);
+
+            //解析org/apache/catalina/session/beans-descriptors.xml文件 创建ManagedBean对象  并将ManagedBean对象 注册到MBeanServer仓库
             registry.loadDescriptors("org.apache.catalina.session", cl);
+
+            //解析org/apache/catalina/startup/beans-descriptors.xml文件 创建ManagedBean对象  并将ManagedBean对象 注册到MBeanServer仓库
             registry.loadDescriptors("org.apache.catalina.startup", cl);
+
+            //解析org/apache/catalina/users/beans-descriptors.xml文件 创建ManagedBean对象  并将ManagedBean对象 注册到MBeanServer仓库
             registry.loadDescriptors("org.apache.catalina.users", cl);
+
+            //解析org/apache/catalina/ha/beans-descriptors.xml文件 创建ManagedBean对象  并将ManagedBean对象 注册到MBeanServer仓库
             registry.loadDescriptors("org.apache.catalina.ha", cl);
+
+            //解析org/apache/catalina/connector/beans-descriptors.xml文件 创建ManagedBean对象  并将ManagedBean对象 注册到MBeanServer仓库
             registry.loadDescriptors("org.apache.catalina.connector", cl);
+
+            //解析org/apache/catalina/valves/beans-descriptors.xml文件 创建ManagedBean对象  并将ManagedBean对象 注册到MBeanServer仓库
             registry.loadDescriptors("org.apache.catalina.valves",  cl);
+
+            //解析org/apache/catalina/storeconfig/beans-descriptors.xml文件 创建ManagedBean对象  并将ManagedBean对象 注册到MBeanServer仓库
             registry.loadDescriptors("org.apache.catalina.storeconfig",  cl);
+
+            //解析org/apache/catalina/web/beans-descriptors.xml文件 创建ManagedBean对象  并将ManagedBean对象 注册到MBeanServer仓库
+            //登记org.apache.tomcat.util.descriptor.web.ContextEnvironment类对应的ManaagedBean对象 并将ManagedBean对象注册到MBeanServer仓库
+            //登记org.apache.tomcat.util.descriptor.web.ContextResource类对应的ManaagedBean对象 并将ManagedBean对象注册到MBeanServer仓库
+            //登记org.apache.tomcat.util.descriptor.web.ContextResourceLink类对应的ManaagedBean对象 并将ManagedBean对象注册到MBeanServer仓库
             registry.loadDescriptors("org.apache.tomcat.util.descriptor.web",  cl);
         }
         return registry;
@@ -563,10 +609,8 @@ public class MBeanUtils {
 
 
     /**
-     * Create and configure (if necessary) and return the
-     * <code>MBeanServer</code> with which we will be
-     * registering our <code>DynamicMBean</code> implementations.
-     * @return the singleton MBean server
+     * 创建MBeanServer存储MBean的仓库对象
+     * @return
      */
     public static synchronized MBeanServer createServer() {
         if (mserver == null) {

@@ -17,15 +17,13 @@
 package org.apache.catalina.startup;
 
 /**
- * String constants for the startup package.
- * <br>
- * Note that some values include a leading '/' and that some do not. This is
- * intentional based on how the values are used.
- *
- * @author Craig R. McClanahan
+ * 常量类
  */
 public final class Constants {
 
+    /**
+     * startup包名
+     */
     public static final String Package = "org.apache.catalina.startup";
 
     public static final String ApplicationContextXml = "META-INF/context.xml";

@@ -20,10 +20,7 @@ import org.apache.tomcat.util.digester.Digester;
 import org.apache.tomcat.util.digester.RuleSetBase;
 
 /**
- * <p><strong>RuleSet</strong> for processing the contents of a
- * CredentialHandler definition element.  This <code>RuleSet</code> supports
- * CredentialHandler such as the <code>NestedCredentialHandler</code> that used
- * nested CredentialHandlers.</p>
+ * Realm标签下的子标签凭证处理器器标签解析规则类
  */
 @SuppressWarnings("deprecation")
 public class CredentialHandlerRuleSet extends RuleSetBase {
@@ -37,7 +34,7 @@ public class CredentialHandlerRuleSet extends RuleSetBase {
 
 
     /**
-     * The matching pattern prefix to use for recognizing our elements.
+     * 标签前缀
      */
     protected final String prefix;
 
@@ -70,13 +67,8 @@ public class CredentialHandlerRuleSet extends RuleSetBase {
 
 
     /**
-     * <p>Add the set of Rule instances defined in this RuleSet to the
-     * specified <code>Digester</code> instance, associating them with
-     * our namespace URI (if any).  This method should only be called
-     * by a Digester instance.</p>
      *
      * @param digester Digester instance to which the new Rule instances
-     *  should be added.
      */
     @Override
     public void addRuleInstances(Digester digester) {
@@ -91,10 +83,19 @@ public class CredentialHandlerRuleSet extends RuleSetBase {
         }
     }
 
+    /**
+     * 添加CredentialHandler标签规则解析器
+     * @param digester 规则管理器对象
+     * @param pattern 匹配规则
+     * @param methodName 方法名
+     */
     private void addRuleInstances(Digester digester, String pattern, String methodName) {
+        //创建CredentialHandler标签中的属性className值的对象
         digester.addObjectCreate(pattern, null /* MUST be specified in the element */,
                 "className");
+        //设置标签对象的属性值
         digester.addSetProperties(pattern);
+        //将当前对象作为参数 执行父标签对象的方法
         digester.addSetNext(pattern, methodName, "org.apache.catalina.CredentialHandler");
     }
 }

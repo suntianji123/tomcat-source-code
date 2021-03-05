@@ -22,12 +22,20 @@ import javax.naming.Context;
 import javax.naming.RefAddr;
 import javax.naming.Reference;
 
+/**
+ * 抽象的资源引用类
+ */
 public abstract class AbstractRef extends Reference {
 
     private static final long serialVersionUID = 1L;
 
 
+    /**
+     * 实例化一个抽象的资源引用对象
+     * @param className 生产的资源对象的全类名
+     */
     public AbstractRef(String className) {
+        //设置全类名
         super(className);
     }
 

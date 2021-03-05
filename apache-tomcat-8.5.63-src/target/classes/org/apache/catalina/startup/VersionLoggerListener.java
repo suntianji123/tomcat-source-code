@@ -31,19 +31,30 @@ import org.apache.juli.logging.LogFactory;
 import org.apache.tomcat.util.res.StringManager;
 
 /**
- * Logs version information on startup.
+ * 版本日志监听器类
  */
 public class VersionLoggerListener implements LifecycleListener {
 
     private static final Log log = LogFactory.getLog(VersionLoggerListener.class);
 
     /**
-     * The string manager for this package.
+     * org.apache.catalina.startup包对应的字符串管理器
      */
     protected static final StringManager sm = StringManager.getManager(Constants.Package);
 
+    /**
+     * 是否记录运行参数
+     */
     private boolean logArgs = true;
+
+    /**
+     * 是否记录环境参数
+     */
     private boolean logEnv = false;
+
+    /**
+     * 是否记录属性参数
+     */
     private boolean logProps = false;
 
 
@@ -77,58 +88,80 @@ public class VersionLoggerListener implements LifecycleListener {
     }
 
 
+    /**
+     * 处理生命周期事件
+     * @param event 生命周期事件对象
+     */
     @Override
     public void lifecycleEvent(LifecycleEvent event) {
-        if (Lifecycle.BEFORE_INIT_EVENT.equals(event.getType())) {
+        if (Lifecycle.BEFORE_INIT_EVENT.equals(event.getType())) {//初始化之前
+            //记录日志
             log();
         }
     }
 
 
+    /**
+     * 从org.apache.catalina.startup.LocalStrings.properties中读取相关属性值
+     * 打印日志
+     */
     private void log() {
-        log.info(sm.getString("versionLoggerListener.serverInfo.server.version",
-                ServerInfo.getServerInfo()));
+        // Server version name:   {0}
+        log.info(sm.getString("versionLoggerListener.serverInfo.server.version", ServerInfo.getServerInfo()));
+        //Server built:          {0}
         log.info(sm.getString("versionLoggerListener.serverInfo.server.built",
                 ServerInfo.getServerBuilt()));
+        //Server version number: {0}
         log.info(sm.getString("versionLoggerListener.serverInfo.server.number",
                 ServerInfo.getServerNumber()));
+        //OS Name:               {0}
         log.info(sm.getString("versionLoggerListener.os.name",
                 System.getProperty("os.name")));
+        //OS Version:            {0}
         log.info(sm.getString("versionLoggerListener.os.version",
                 System.getProperty("os.version")));
+        //Architecture:          {0}
         log.info(sm.getString("versionLoggerListener.os.arch",
                 System.getProperty("os.arch")));
+        //Java Home:             {0}
         log.info(sm.getString("versionLoggerListener.java.home",
                 System.getProperty("java.home")));
+        //JVM Version:           {0}
         log.info(sm.getString("versionLoggerListener.vm.version",
                 System.getProperty("java.runtime.version")));
+        //JVM Vendor:            {0}
         log.info(sm.getString("versionLoggerListener.vm.vendor",
                 System.getProperty("java.vm.vendor")));
+        //CATALINA_BASE:         {0}
         log.info(sm.getString("versionLoggerListener.catalina.base",
                 System.getProperty("catalina.base")));
+        //CATALINA_HOME:         {0}
         log.info(sm.getString("versionLoggerListener.catalina.home",
                 System.getProperty("catalina.home")));
 
-        if (logArgs) {
+        if (logArgs) {//如果运行main方法传入的参数
             List<String> args = ManagementFactory.getRuntimeMXBean().getInputArguments();
-            for (String arg : args) {
+            for (String arg : args) {//遍历所有的参数 记录
+                //Command line argument: {0}
                 log.info(sm.getString("versionLoggerListener.arg", arg));
             }
         }
 
-        if (logEnv) {
+        if (logEnv) {//记录环境参数
             SortedMap<String, String> sortedMap = new TreeMap<>(System.getenv());
             for (Map.Entry<String, String> e : sortedMap.entrySet()) {
+                //Environment variable:  {0} = {1}
                 log.info(sm.getString("versionLoggerListener.env", e.getKey(), e.getValue()));
             }
         }
 
-        if (logProps) {
+        if (logProps) {//记录属性
             SortedMap<String, String> sortedMap = new TreeMap<>();
             for (Map.Entry<Object, Object> e : System.getProperties().entrySet()) {
                 sortedMap.put(String.valueOf(e.getKey()), String.valueOf(e.getValue()));
             }
             for (Map.Entry<String, String> e : sortedMap.entrySet()) {
+                //System property:       {0} = {1}
                 log.info(sm.getString("versionLoggerListener.prop", e.getKey(), e.getValue()));
             }
         }

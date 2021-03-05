@@ -19,25 +19,38 @@
      define subcomponents such as "Valves" at this level.
      Documentation at /docs/config/server.html
  -->
+<!--先创建Server对象 设置Server对象port shutdown属性的值-->
 <Server port="8005" shutdown="SHUTDOWN">
+
+  <!--创建VersionLoggerListener对象 将VersionLoggerListener添加到Server的lifecycleListeners 生命周期监听器列表-->
   <Listener className="org.apache.catalina.startup.VersionLoggerListener" />
   <!-- Security listener. Documentation at /docs/config/listeners.html
   <Listener className="org.apache.catalina.security.SecurityListener" />
   -->
-  <!--APR library loader. Documentation at /docs/apr.html -->
+  <!--创建AprLifecycleListener对象 设置SSLEngine属性值为on 将当前监听器添加到Server的lifecycleListeners 生命周期监听器列表-->
+  <!--主要功能是：如果系统库中存在"tcnative-1.dll", "libtcnative-1.dll"(默认不存在) 则使用AprProtocol协议处理器,否则使用NioProtocal协议处理器-->
   <Listener className="org.apache.catalina.core.AprLifecycleListener" SSLEngine="on" />
-  <!-- Prevent memory leaks due to use of particular java/javax APIs-->
+
+  <!--创建JreMemoryLeakPreventionListener对象 将当前监听器添加到Server的lifecycleListeners 生命周期监听器列表-->
   <Listener className="org.apache.catalina.core.JreMemoryLeakPreventionListener" />
+
+  <!--创建GlobalResourcesLifecycleListener对象 将当前监听器添加到Server的lifecycleListeners 生命周期监听器列表-->
   <Listener className="org.apache.catalina.mbeans.GlobalResourcesLifecycleListener" />
+
+  <!--创建ThreadLocalLeakPreventionListener对象 将当前监听器添加到Server的lifecycleListeners 生命周期监听器列表-->
   <Listener className="org.apache.catalina.core.ThreadLocalLeakPreventionListener" />
 
   <!-- Global JNDI resources
        Documentation at /docs/jndi-resources-howto.html
   -->
+  <!--创建一个NamingResourcesImpl对象-->
+  <!--将NamingResourcesImp作为参数 执行Server对象的setGlobalNamingResources-->
   <GlobalNamingResources>
     <!-- Editable user database that can also be used by
          UserDatabaseRealm to authenticate users
     -->
+    <!--创建一个ContextResource对象 设置对象的属性值-->
+    <!--将 ContextResource对象作为参数 执行NamingResourcesImpl对象的addResource方法-->
     <Resource name="UserDatabase" auth="Container"
               type="org.apache.catalina.UserDatabase"
               description="User database that can be updated and saved"
@@ -50,6 +63,7 @@
        so you may not define subcomponents such as "Valves" at this level.
        Documentation at /docs/config/service.html
    -->
+  <!--创建StandardService对象 设置属性name=Catalina-->
   <Service name="Catalina">
 
     <!--The connectors can use a shared executor, you can define one or more named thread pools-->
@@ -59,13 +73,7 @@
     -->
 
 
-    <!-- A "Connector" represents an endpoint by which requests are received
-         and responses are returned. Documentation at :
-         Java HTTP Connector: /docs/config/http.html
-         Java AJP  Connector: /docs/config/ajp.html
-         APR (HTTP/AJP) Connector: /docs/apr.html
-         Define a non-SSL/TLS HTTP/1.1 Connector on port 8080
-    -->
+    <!--创建Connector对象  设置属性 将Connector对象作为参数执行Service的addConnector方法-->
     <Connector port="8080" protocol="HTTP/1.1"
                connectionTimeout="20000"
                redirectPort="8443" />
@@ -120,15 +128,8 @@
                redirectPort="8443" />
     -->
 
-    <!-- An Engine represents the entry point (within Catalina) that processes
-         every request.  The Engine implementation for Tomcat stand alone
-         analyzes the HTTP headers included with the request, and passes them
-         on to the appropriate Host (virtual host).
-         Documentation at /docs/config/engine.html -->
-
-    <!-- You should set jvmRoute to support load-balancing via AJP ie :
-    <Engine name="Catalina" defaultHost="localhost" jvmRoute="jvm1">
-    -->
+    <!--创建StandardEngine引擎对象  设置引擎的属性值-->
+    <!---->
     <Engine name="Catalina" defaultHost="localhost">
 
       <!--For clustering, please take a look at documentation at:
@@ -138,17 +139,15 @@
       <Cluster className="org.apache.catalina.ha.tcp.SimpleTcpCluster"/>
       -->
 
-      <!-- Use the LockOutRealm to prevent attempts to guess user passwords
-           via a brute-force attack -->
+      <!--创建LockOutRealm对象 将LockOutRealm作为参数 执行StandardEngine的setRealm方法-->
       <Realm className="org.apache.catalina.realm.LockOutRealm">
-        <!-- This Realm uses the UserDatabase configured in the global JNDI
-             resources under the key "UserDatabase".  Any edits
-             that are performed against this UserDatabase are immediately
-             available for use by the Realm.  -->
+
+        <!--创建UserDatabaseRealm对象 设置属性值 将UserDatabaseRealm作为参数 执行LockOutRealm的addRealm方法-->
         <Realm className="org.apache.catalina.realm.UserDatabaseRealm"
                resourceName="UserDatabase"/>
       </Realm>
 
+      <!--创建子容器StandardHost对象  设置子容器的相关属性 将子容器添加到StandardEngine的子容器map-->
       <Host name="localhost"  appBase="webapps"
             unpackWARs="true" autoDeploy="true">
 

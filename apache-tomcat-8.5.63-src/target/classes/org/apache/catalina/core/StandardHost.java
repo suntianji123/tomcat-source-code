@@ -47,12 +47,7 @@ import org.apache.juli.logging.LogFactory;
 import org.apache.tomcat.util.ExceptionUtils;
 
 /**
- * Standard implementation of the <b>Host</b> interface.  Each
- * child container must be a Context implementation to process the
- * requests directed to a particular web application.
- *
- * @author Craig R. McClanahan
- * @author Remy Maucherat
+ * 标准的主机类
  */
 public class StandardHost extends ContainerBase implements Host {
 
@@ -62,11 +57,13 @@ public class StandardHost extends ContainerBase implements Host {
 
 
     /**
-     * Create a new StandardHost component with the default basic Valve.
+     * 实例化一个标准的主机类
      */
     public StandardHost() {
 
         super();
+
+        //给管道对象添加一个基本值
         pipeline.setBasic(new StandardHostValve());
 
     }
@@ -84,9 +81,13 @@ public class StandardHost extends ContainerBase implements Host {
 
 
     /**
-     * The application root for this Host.
+     * web文件的基本路径
      */
     private String appBase = "webapps";
+
+    /**
+     * app基本文件
+     */
     private volatile File appBaseFile = null;
 
     /**
@@ -150,7 +151,7 @@ public class StandardHost extends ContainerBase implements Host {
 
 
     /**
-     * Unpack WARs property.
+     * 是否打开war压缩文件 默认为true
      */
     private boolean unpackWARs = true;
 
@@ -248,20 +249,22 @@ public class StandardHost extends ContainerBase implements Host {
 
 
     /**
-     * Set the application root for this Host.  This can be an absolute
-     * pathname, a relative pathname, or a URL.
-     *
-     * @param appBase The new application root
+     * 设置web文件的基本路径
+     * @param appBase web文件的基本路径
      */
     @Override
     public void setAppBase(String appBase) {
 
-        if (appBase.trim().equals("")) {
+        if (appBase.trim().equals("")) {//如果路径为空字符串  记录日志
             log.warn(sm.getString("standardHost.problematicAppBase", getName()));
         }
+        //获取原始的web文件路径
         String oldAppBase = this.appBase;
+        //设置新的web文件路径
         this.appBase = appBase;
+        //下发当前主机对象 web文件路径改变事件
         support.firePropertyChange("appBase", oldAppBase, this.appBase);
+        //设置
         this.appBaseFile = null;
     }
 
@@ -349,15 +352,16 @@ public class StandardHost extends ContainerBase implements Host {
 
 
     /**
-     * Set the auto deploy flag value for this host.
-     *
-     * @param autoDeploy The new auto deploy flag
+     * 设置自动延时
+     * @param autoDeploy 配置文件制定的值为true
      */
     @Override
     public void setAutoDeploy(boolean autoDeploy) {
-
+        //原始自动延时值
         boolean oldAutoDeploy = this.autoDeploy;
+        //设置自定延时值为新的自动延时值
         this.autoDeploy = autoDeploy;
+        //下发当前主机对象自动延时值改变事件
         support.firePropertyChange("autoDeploy", oldAutoDeploy,
                                    this.autoDeploy);
 
@@ -548,9 +552,8 @@ public class StandardHost extends ContainerBase implements Host {
 
 
     /**
-     * Unpack WARs flag mutator.
-     *
-     * @param unpackWARs <code>true</code> to unpack WARs on deployment
+     * 设置是否打开war文件
+     * @param unpackWARs 是否打开war文件
      */
     public void setUnpackWARs(boolean unpackWARs) {
         this.unpackWARs = unpackWARs;

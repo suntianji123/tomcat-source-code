@@ -20,6 +20,10 @@ import java.util.concurrent.TimeUnit;
 
 public interface Executor extends java.util.concurrent.Executor, Lifecycle {
 
+    /**
+     * 获取执行器名
+     * @return
+     */
     public String getName();
 
     /**

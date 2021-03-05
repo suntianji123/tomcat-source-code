@@ -28,16 +28,18 @@ import org.apache.tomcat.util.buf.UriUtil;
 import org.apache.tomcat.util.res.StringManager;
 
 /**
- * This class is used to obtain {@link InputStream}s for configuration files
- * from a given location String. This allows greater flexibility than these
- * files having to be loaded directly from a file system.
+ * 配置文件加载类
  */
 public class ConfigFileLoader {
 
     private static final StringManager sm = StringManager.getManager(ConfigFileLoader.class
             .getPackage().getName());
 
+    /**
+     * catalina.base catalina-home文件夹
+     */
     private static final File CATALINA_BASE_FILE;
+
     private static final URI CATALINA_BASE_URI;
 
     static {

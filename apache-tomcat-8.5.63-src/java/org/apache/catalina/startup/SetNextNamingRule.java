@@ -23,18 +23,9 @@ import org.apache.catalina.deploy.NamingResourcesImpl;
 import org.apache.tomcat.util.IntrospectionUtils;
 import org.apache.tomcat.util.digester.Rule;
 
-
 /**
- * <p>Rule implementation that calls a method on the (top-1) (parent)
- * object, passing the top object (child) as an argument.  It is
- * commonly used to establish parent-child relationships.</p>
- *
- * <p>This rule now supports more flexible method matching by default.
- * It is possible that this may break (some) code
- * written against release 1.1.1 or earlier.
- * </p>
+ * 将当前标签对象作为参数执行父标签的规则类
  */
-
 public class SetNextNamingRule extends Rule {
 
 
@@ -78,29 +69,28 @@ public class SetNextNamingRule extends Rule {
 
 
     /**
-     * Process the end of this element.
-     *
-     * @param namespace the namespace URI of the matching element, or an
-     *   empty string if the parser is not namespace aware or the element has
-     *   no namespace
-     * @param name the local name if the parser is namespace aware, or just
-     *   the element name otherwise
+     * 结束标签方法
+     * @param namespace 命名空间
+     * @param name 标签名
+     * @throws Exception
      */
     @Override
     public void end(String namespace, String name) throws Exception {
 
-        // Identify the objects to be used
+        //当前标签对象
         Object child = digester.peek(0);
+        //父标签对象
         Object parent = digester.peek(1);
 
         NamingResourcesImpl namingResources = null;
         if (parent instanceof Context) {
             namingResources = ((Context) parent).getNamingResources();
         } else {
+            //将父对象 强转为NamingResourcesImpl类型
             namingResources = (NamingResourcesImpl) parent;
         }
 
-        // Call the specified method
+        //将当前标签对象作为参数 执行父标签对象的方法
         IntrospectionUtils.callMethod1(namingResources, methodName,
                 child, paramType, digester.getClassLoader());
     }

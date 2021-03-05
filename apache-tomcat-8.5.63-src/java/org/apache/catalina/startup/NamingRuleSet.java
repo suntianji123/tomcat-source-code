@@ -24,11 +24,7 @@ import org.apache.tomcat.util.digester.RuleSetBase;
 
 
 /**
- * <p><strong>RuleSet</strong> for processing the JNDI Enterprise Naming
- * Context resource declaration elements.</p>
- *
- * @author Craig R. McClanahan
- * @author Remy Maucherat
+ * 命名规则集合类
  */
 @SuppressWarnings("deprecation")
 public class NamingRuleSet extends RuleSetBase {
@@ -38,7 +34,7 @@ public class NamingRuleSet extends RuleSetBase {
 
 
     /**
-     * The matching pattern prefix to use for recognizing our elements.
+     * 父标签
      */
     protected final String prefix;
 
@@ -56,11 +52,8 @@ public class NamingRuleSet extends RuleSetBase {
 
 
     /**
-     * Construct an instance of this <code>RuleSet</code> with the specified
-     * matching pattern prefix.
-     *
-     * @param prefix Prefix for matching pattern rules (including the
-     *  trailing slash character)
+     * 实例化一个命名规则集合类
+     * @param prefix 命名前缀
      */
     public NamingRuleSet(String prefix) {
         this.prefix = prefix;
@@ -71,62 +64,80 @@ public class NamingRuleSet extends RuleSetBase {
 
 
     /**
-     * <p>Add the set of Rule instances defined in this RuleSet to the
-     * specified <code>Digester</code> instance, associating them with
-     * our namespace URI (if any).  This method should only be called
-     * by a Digester instance.</p>
-     *
-     * @param digester Digester instance to which the new Rule instances
-     *  should be added.
+     * 添加规则的来源对象
+     * @param digester 规则来源对象
      */
     @Override
     public void addRuleInstances(Digester digester) {
 
+        //创建ContextEjb对象
         digester.addObjectCreate(prefix + "Ejb",
                                  "org.apache.tomcat.util.descriptor.web.ContextEjb");
+        //设置ContextEjb对象所有的属性值（有排除的属性值时 排除属性值）
         digester.addRule(prefix + "Ejb", new SetAllPropertiesRule());
+        //将ContextEjb对象作为参数，执行父标签对象的addEjb方法
         digester.addRule(prefix + "Ejb",
                 new SetNextNamingRule("addEjb",
                             "org.apache.tomcat.util.descriptor.web.ContextEjb"));
 
+        //创建ContextEnvironment对象
         digester.addObjectCreate(prefix + "Environment",
                                  "org.apache.tomcat.util.descriptor.web.ContextEnvironment");
+        //设置ContextEnvironment对象的属性值
         digester.addSetProperties(prefix + "Environment");
+
+        //将ContextEnvironment对象作为参数 执行父对象的addEnvironment方法
         digester.addRule(prefix + "Environment",
                             new SetNextNamingRule("addEnvironment",
                             "org.apache.tomcat.util.descriptor.web.ContextEnvironment"));
 
+        //创建ContextLocalEjb对象
         digester.addObjectCreate(prefix + "LocalEjb",
                                  "org.apache.tomcat.util.descriptor.web.ContextLocalEjb");
+        //设置ContextLocalEjb对象所有的属性值（排除不需要设置的属性值）
         digester.addRule(prefix + "LocalEjb", new SetAllPropertiesRule());
+
+        //将ContextLocalEjb作为参数 执行父标签对象的addLocalEjb方法
         digester.addRule(prefix + "LocalEjb",
                 new SetNextNamingRule("addLocalEjb",
                             "org.apache.tomcat.util.descriptor.web.ContextLocalEjb"));
 
+        //创建ContextResource对象
         digester.addObjectCreate(prefix + "Resource",
                                  "org.apache.tomcat.util.descriptor.web.ContextResource");
+        //设置ContextResource对象所有的属性值（排除不需要设置的属性值）
         digester.addRule(prefix + "Resource", new SetAllPropertiesRule());
+        //将ContextResource对象作为参数 执行父标签对象的addResource
         digester.addRule(prefix + "Resource",
                 new SetNextNamingRule("addResource",
                             "org.apache.tomcat.util.descriptor.web.ContextResource"));
 
+        //创建ContextResourceEnvRef对象
         digester.addObjectCreate(prefix + "ResourceEnvRef",
             "org.apache.tomcat.util.descriptor.web.ContextResourceEnvRef");
+        //设置ContextResourceEnvRef所有属性（排除不需要设置的属性）
         digester.addRule(prefix + "ResourceEnvRef", new SetAllPropertiesRule());
+        //将ContextResourceEnvRef作为参数 执行父标签对象的addResourceEnvRef方法
         digester.addRule(prefix + "ResourceEnvRef",
                 new SetNextNamingRule("addResourceEnvRef",
                             "org.apache.tomcat.util.descriptor.web.ContextResourceEnvRef"));
 
+        //创建ContextService方法
         digester.addObjectCreate(prefix + "ServiceRef",
             "org.apache.tomcat.util.descriptor.web.ContextService");
+        //设置ContextService对象所有的属性值（排除不需要设置的属性）
         digester.addRule(prefix + "ServiceRef", new SetAllPropertiesRule());
+        //将ContextService对象作为参数 执行父标签对象的addService方法
         digester.addRule(prefix + "ServiceRef",
                 new SetNextNamingRule("addService",
                             "org.apache.tomcat.util.descriptor.web.ContextService"));
 
+        //创建ContextTransaction对象
         digester.addObjectCreate(prefix + "Transaction",
             "org.apache.tomcat.util.descriptor.web.ContextTransaction");
+        //设置ContextTransaction对象所有的属性
         digester.addRule(prefix + "Transaction", new SetAllPropertiesRule());
+        //将ContextTransaction对象作为参数 执行父标签对象的setTransaction方法
         digester.addRule(prefix + "Transaction",
                 new SetNextNamingRule("setTransaction",
                             "org.apache.tomcat.util.descriptor.web.ContextTransaction"));

@@ -17,15 +17,14 @@
 package org.apache.catalina;
 
 /**
- * The list of valid states for components that implement {@link Lifecycle}.
- * See {@link Lifecycle} for the state transition diagram.
+ * 生命周期对象的状态枚举
  */
 public enum LifecycleState {
-    NEW(false, null),
-    INITIALIZING(false, Lifecycle.BEFORE_INIT_EVENT),
-    INITIALIZED(false, Lifecycle.AFTER_INIT_EVENT),
-    STARTING_PREP(false, Lifecycle.BEFORE_START_EVENT),
-    STARTING(true, Lifecycle.START_EVENT),
+    NEW(false, null),//新创建
+    INITIALIZING(false, Lifecycle.BEFORE_INIT_EVENT),//初始化中
+    INITIALIZED(false, Lifecycle.AFTER_INIT_EVENT),//初始化完成
+    STARTING_PREP(false, Lifecycle.BEFORE_START_EVENT),//启动准备
+    STARTING(true, Lifecycle.START_EVENT),//启动中
     STARTED(true, Lifecycle.AFTER_START_EVENT),
     STOPPING_PREP(true, Lifecycle.BEFORE_STOP_EVENT),
     STOPPING(false, Lifecycle.STOP_EVENT),
@@ -34,9 +33,21 @@ public enum LifecycleState {
     DESTROYED(false, Lifecycle.AFTER_DESTROY_EVENT),
     FAILED(false, null);
 
+    /**
+     * 对象是否可用
+     */
     private final boolean available;
+
+    /**
+     * 生命周期事件
+     */
     private final String lifecycleEvent;
 
+    /**
+     * 实例化生命周期状态
+     * @param available 对象是否可用
+     * @param lifecycleEvent  生命周期事件
+     */
     private LifecycleState(boolean available, String lifecycleEvent) {
         this.available = available;
         this.lifecycleEvent = lifecycleEvent;

@@ -43,20 +43,24 @@ import org.apache.tomcat.util.buf.StringUtils.Function;
 
 
 /**
- * <p>Internal configuration information for a managed bean (MBean)
- * descriptor.</p>
- *
- * @author Craig R. McClanahan
+ * MangedBean对象
+ * 有一个默认的属性 modelerType建模类型
  */
 public class ManagedBean implements java.io.Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    /**
+     * 基本的MBean对象的包名
+     */
     private static final String BASE_MBEAN = "org.apache.tomcat.util.modeler.BaseModelMBean";
     // ----------------------------------------------------- Instance Variables
     static final Class<?>[] NO_ARGS_PARAM_SIG = new Class[0];
 
 
+    /**
+     * bean对象的读写锁
+     */
     private final ReadWriteLock mBeanInfoLock = new ReentrantReadWriteLock();
     /**
      * The <code>ModelMBeanInfo</code> object that corresponds
@@ -64,28 +68,60 @@ public class ManagedBean implements java.io.Serializable {
      */
     private transient volatile MBeanInfo info = null;
 
+    /**
+     * 当前ManagedBean的属性列表
+     */
     private Map<String,AttributeInfo> attributes = new HashMap<>();
 
     private Map<String,OperationInfo> operations = new HashMap<>();
 
+    /**
+     * 当前可管理的MBean对象对应的动态MBean对象的全类名 默认为基本MBean类的全类名
+     */
     protected String className = BASE_MBEAN;
+
+    /**
+     * 描述
+     */
     protected String description = null;
+
+    /**
+     * 设置领域
+     */
     protected String domain = null;
+
+    /**
+     * 组名
+     */
     protected String group = null;
+
+    /**
+     * 原始bean的名
+     */
     protected String name = null;
 
     private NotificationInfo notifications[] = new NotificationInfo[0];
+
+    /**
+     *原始bean的全类名
+     */
     protected String type = null;
 
-    /** Constructor. Will add default attributes.
-     *
+    /**
+     * 实例化一个ManagedBean对象
      */
     public ManagedBean() {
+        //实例化一个属性信息对象 给ManagedBean添加一个默认的属性
         AttributeInfo ai=new AttributeInfo();
+        //设置属性的名字
         ai.setName("modelerType");
+        //设置描述
         ai.setDescription("Type of the modeled resource. Can be set only once");
+        //设置属性类型
         ai.setType("java.lang.String");
+        //设置不可写
         ai.setWriteable(false);
+        //将属性
         addAttribute(ai);
     }
 
@@ -131,12 +167,19 @@ public class ManagedBean implements java.io.Serializable {
         return this.description;
     }
 
+    /**
+     * 设置描述
+     * @param description 描述字符串
+     */
     public void setDescription(String description) {
+        //打开写锁
         mBeanInfoLock.writeLock().lock();
         try {
+            //设置描述
             this.description = description;
             this.info = null;
         } finally {
+            //释放写锁
             mBeanInfoLock.writeLock().unlock();
         }
     }
@@ -150,6 +193,10 @@ public class ManagedBean implements java.io.Serializable {
         return this.domain;
     }
 
+    /**
+     * 设置领域
+     * @param domain
+     */
     public void setDomain(String domain) {
         this.domain = domain;
     }
@@ -175,12 +222,20 @@ public class ManagedBean implements java.io.Serializable {
         return this.name;
     }
 
+    /**
+     * 设置bean对象的名字
+     * @param name 美名字
+     */
     public void setName(String name) {
+        //打开写锁
         mBeanInfoLock.writeLock().lock();
         try {
+            //设置名字
             this.name = name;
+            //设置信息为null
             this.info = null;
         } finally {
+            //释放写锁
             mBeanInfoLock.writeLock().unlock();
         }
     }
@@ -213,12 +268,19 @@ public class ManagedBean implements java.io.Serializable {
         return this.type;
     }
 
+    /**
+     * 设置生产ManagedBean工厂的全类名
+     * @param type 全类名
+     */
     public void setType(String type) {
+        //打开写锁
         mBeanInfoLock.writeLock().lock();
         try {
+            //设置全类名
             this.type = type;
             this.info = null;
         } finally {
+            //释放写锁
             mBeanInfoLock.writeLock().unlock();
         }
     }
@@ -228,9 +290,8 @@ public class ManagedBean implements java.io.Serializable {
 
 
     /**
-     * Add a new attribute to the set of attributes for this MBean.
-     *
-     * @param attribute The new attribute descriptor
+     * 向属性列表中添加一个属性对象
+     * @param attribute 属性对象
      */
     public void addAttribute(AttributeInfo attribute) {
         attributes.put(attribute.getName(), attribute);
@@ -269,21 +330,12 @@ public class ManagedBean implements java.io.Serializable {
 
 
     /**
-     * Create and return a <code>ModelMBean</code> that has been
-     * preconfigured with the <code>ModelMBeanInfo</code> information
-     * for this managed bean, and is associated with the specified
-     * managed object instance.  The returned <code>ModelMBean</code>
-     * will <strong>NOT</strong> have been registered with our
-     * <code>MBeanServer</code>.
-     *
-     * @param instance Instanced of the managed object, or <code>null</code>
-     *  for no associated instance
-     * @return the MBean
-     * @exception InstanceNotFoundException if the managed resource
-     *  object cannot be found
-     * @exception MBeanException if a problem occurs instantiating the
-     *  <code>ModelMBean</code> instance
-     * @exception RuntimeOperationsException if a JMX runtime error occurs
+     * 根据对象 创建一个动态的MBean对象
+     * @param instance 对象实例
+     * @return
+     * @throws InstanceNotFoundException
+     * @throws MBeanException
+     * @throws RuntimeOperationsException
      */
     public DynamicMBean createMBean(Object instance)
         throws InstanceNotFoundException,
@@ -292,8 +344,9 @@ public class ManagedBean implements java.io.Serializable {
         BaseModelMBean mbean = null;
 
         // Load the ModelMBean implementation class
-        if(getClassName().equals(BASE_MBEAN)) {
+        if(getClassName().equals(BASE_MBEAN)) {//可管理对象的className为基本的MBean
             // Skip introspection
+            //实例化一个基本模型的MBean对象
             mbean = new BaseModelMBean();
         } else {
             Class<?> clazz = null;
@@ -329,16 +382,19 @@ public class ManagedBean implements java.io.Serializable {
             }
         }
 
+        //设置基本的MBean对象的可管理的MBean对象为当前对象
         mbean.setManagedBean(this);
 
         // Set the managed resource (if any)
         try {
             if (instance != null)
+                //设置基本模型MBean对象的资源对象
                 mbean.setManagedResource(instance, "ObjectReference");
         } catch (InstanceNotFoundException e) {
             throw e;
         }
 
+        //返回动态的MBean对象
         return mbean;
     }
 

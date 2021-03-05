@@ -41,29 +41,8 @@ import org.apache.juli.logging.LogFactory;
 import org.apache.tomcat.util.modeler.modules.ModelerSource;
 import org.apache.tomcat.util.res.StringManager;
 
-/*
-   Issues:
-   - exceptions - too many "throws Exception"
-   - double check the interfaces
-   - start removing the use of the experimental methods in tomcat, then remove
-     the methods ( before 1.1 final )
-   - is the security enough to prevent Registry being used to avoid the
-     permission checks in the mbean server ?
-*/
-
 /**
- * Registry for modeler MBeans.
- *
- * This is the main entry point into modeler. It provides methods to create and
- * manipulate model mbeans and simplify their use.
- *
- * This class is itself an mbean.
- *
- * IMPORTANT: public methods not marked with @since x.x are experimental or
- * internal. Should not be used.
- *
- * @author Craig R. McClanahan
- * @author Costin Manolache
+ * 访问MBeanServer仓库的工具类
  */
 public class Registry implements RegistryMBean, MBeanRegistration {
 
@@ -76,33 +55,41 @@ public class Registry implements RegistryMBean, MBeanRegistration {
     // Support for the factory methods
 
     /**
-     * The registry instance created by our factory method the first time it is
-     * called.
+     * 单例对象
      */
     private static Registry registry = null;
 
     // Per registry fields
 
     /**
-     * The <code>MBeanServer</code> instance that we will use to register
-     * management beans.
+     * 管理MBean的仓库对象
      */
     private volatile MBeanServer server = null;
+
+    /**
+     * 访问MBeanServer仓库的锁对象
+     */
     private final Object serverLock = new Object();
 
     /**
-     * The set of ManagedBean instances for the beans this registry knows about,
-     * keyed by name.
+     * name | ManagedBean表
      */
     private HashMap<String,ManagedBean> descriptors = new HashMap<>();
 
-    /** List of managed beans, keyed by class name
+    /**
+     * bean的全类名 | ManagedBean表
      */
     private HashMap<String,ManagedBean> descriptorsByClass = new HashMap<>();
 
-    // map to avoid duplicated searching or loading descriptors
+    /**
+     * 已经搜素过的路径 与 URL之前的映射关系map
+     * 某个包下的mbeans-descriptors.xml 是否已经被解析过
+     */
     private HashMap<String,URL> searchedPaths = new HashMap<>();
 
+    /**
+     * 登记处的警卫对象
+     */
     private Object guard;
 
     // Id - small ints to use array access. No reset on stop()
@@ -114,6 +101,9 @@ public class Registry implements RegistryMBean, MBeanRegistration {
 
     // ----------------------------------------------------------- Constructors
 
+    /**
+     * 实例化一个登记处对象
+     */
      public Registry() {
         super();
     }
@@ -122,22 +112,23 @@ public class Registry implements RegistryMBean, MBeanRegistration {
     // Factories
 
     /**
-     * Factory method to create (if necessary) and return our
-     * <code>Registry</code> instance.
-     *
-     * @param key Unused
-     * @param guard Prevent access to the registry by untrusted components
-     *
-     * @return the registry
-     * @since 1.1
+     * 获取登记处对象
+     * @param key
+     * @param guard 登记处的警卫
+     * @return
      */
     public static synchronized Registry getRegistry(Object key, Object guard) {
-        if (registry == null) {
+        if (registry == null) {//登记处对象还没创建
+            //实例化一个登记处对象
             registry = new Registry();
         }
+
+        //登记处已经有警卫  但是登记处的警卫与指定的警卫不是同一人
         if (registry.guard != null && registry.guard != guard) {
             return null;
         }
+
+        //返回警卫
         return registry;
     }
 
@@ -286,38 +277,29 @@ public class Registry implements RegistryMBean, MBeanRegistration {
     }
 
 
-    // -------------------- Metadata --------------------
-    // methods from 1.0
-
     /**
-     * Add a new bean metadata to the set of beans known to this registry. This
-     * is used by internal components.
-     *
-     * @param bean The managed bean to be added
-     * @since 1.0
+     * 注册ManagedBean对象
+     * @param bean 将要被注册的ManagedBean对象
      */
     public void addManagedBean(ManagedBean bean) {
-        // XXX Use group + name
+        //将MBean对象 放入描述器表
         descriptors.put(bean.getName(), bean);
-        if (bean.getType() != null) {
+        if (bean.getType() != null) {//指定了描述的class类型
             descriptorsByClass.put(bean.getType(), bean);
         }
     }
 
 
     /**
-     * Find and return the managed bean definition for the specified bean name,
-     * if any; otherwise return <code>null</code>.
-     *
-     * @param name Name of the managed bean to be returned. Since 1.1, both
-     *            short names or the full name of the class can be used.
-     * @return the managed bean
-     * @since 1.0
+     * 根据全类名获取可管理的bean对象
+     * @param name 全类名
+     * @return
      */
     public ManagedBean findManagedBean(String name) {
-        // XXX Group ?? Use Group + Type
+       //从描述器中获取可管理的bean对象
         ManagedBean mb = descriptors.get(name);
-        if (mb == null)
+        if (mb == null)//不存在可管理的bean对象
+
             mb = descriptorsByClass.get(name);
         return mb;
     }
@@ -427,22 +409,24 @@ public class Registry implements RegistryMBean, MBeanRegistration {
 
 
     /**
-     * Factory method to create (if necessary) and return our
-     * <code>MBeanServer</code> instance.
-     *
-     * @return the MBean server
+     * 获取管理MBean的仓库
+     * @return
      */
     public MBeanServer getMBeanServer() {
-        if (server == null) {
+        if (server == null) {//服务器对象为null
             synchronized (serverLock) {
-                if (server == null) {
+                if (server == null) {//服务器你对象
+                    //当前时间
                     long t1 = System.currentTimeMillis();
+                    //查找MBeanServer
                     if (MBeanServerFactory.findMBeanServer(null).size() > 0) {
+                        //第0个元素为MBeanServer
                         server = MBeanServerFactory.findMBeanServer(null).get(0);
                         if (log.isDebugEnabled()) {
                             log.debug("Using existing MBeanServer " + (System.currentTimeMillis() - t1));
                         }
                     } else {
+                        //获取平台的MBeanServer对象
                         server = ManagementFactory.getPlatformMBeanServer();
                         if (log.isDebugEnabled()) {
                             log.debug("Creating MBeanServer" + (System.currentTimeMillis() - t1));
@@ -451,31 +435,34 @@ public class Registry implements RegistryMBean, MBeanRegistration {
                 }
             }
         }
+
+        //返回管理MBean的仓库MBeanServer对象
         return server;
     }
 
 
     /**
-     * Find or load metadata.
-     *
-     * @param bean The bean
-     * @param beanClass The bean class
-     * @param type The registry type
-     * @return the managed bean
-     * @throws Exception An error occurred
+     * 查找可管理的Bean对象
+     * @param bean bean对象
+     * @param beanClass bean的class类
+     * @param type  bean的全类名
+     * @return
+     * @throws Exception
      */
     public ManagedBean findManagedBean(Object bean, Class<?> beanClass, String type)
             throws Exception {
 
-        if (bean != null && beanClass == null) {
+        if (bean != null && beanClass == null) {//如果没有指定bean的class类型
+            //从bean对象获取class类
             beanClass = bean.getClass();
         }
 
-        if (type == null) {
+        if (type == null) {//全类名不存在
+            //获取bean的全类名
             type = beanClass.getName();
         }
 
-        // first look for existing descriptor
+        // 通过对象的全类名查找对象的ManagedBean描述信息对象
         ManagedBean managed = findManagedBean(type);
 
         // Search for a descriptor in the same package
@@ -506,6 +493,8 @@ public class Registry implements RegistryMBean, MBeanRegistration {
             managed.setName(type);
             addManagedBean(managed);
         }
+
+        //返回对象的ManagedBean描述对象
         return managed;
     }
 
@@ -543,13 +532,12 @@ public class Registry implements RegistryMBean, MBeanRegistration {
 
 
     /**
-     * Experimental. Load descriptors.
-     *
-     * @param sourceType The source type
-     * @param source The bean
-     * @param param A type to load
-     * @return List of descriptors
-     * @throws Exception Error loading descriptors
+     * 在加载资源
+     * @param sourceType 资源类型
+     * @param source 资源url对象
+     * @param param 参数
+     * @return
+     * @throws Exception
      */
     public List<ObjectName> load(String sourceType, Object source, String param) throws Exception {
         if (log.isTraceEnabled()) {
@@ -559,10 +547,14 @@ public class Registry implements RegistryMBean, MBeanRegistration {
         String type = null;
         Object inputsource = null;
 
-        if (source instanceof URL) {
+        if (source instanceof URL) {//如果资源是url
+            //将资源转为url类型
             URL url = (URL) source;
+            //获取路径
             location = url.toString();
+            //类型为参数
             type = param;
+            //打开输入流
             inputsource = url.openStream();
             if (sourceType == null && location.endsWith(".xml")) {
                 sourceType = "MbeansDescriptorsDigesterSource";
@@ -589,7 +581,11 @@ public class Registry implements RegistryMBean, MBeanRegistration {
         if (sourceType == null) {
             sourceType = "MbeansDescriptorsDigesterSource";
         }
+
+        //获取建模资源对象
         ModelerSource ds = getModelerSource(sourceType);
+
+        //使用建模资源对象 加载描述其
         List<ObjectName> mbeans = ds.loadDescriptors(this, type, inputsource);
 
         return mbeans;
@@ -597,31 +593,35 @@ public class Registry implements RegistryMBean, MBeanRegistration {
 
 
     /**
-     * Register a component
-     *
-     * @param bean The bean
-     * @param oname The object name
-     * @param type The registry type
-     * @throws Exception Error registering component
+     * 向MBeanServer仓库中注册一个MBean对象 比如StandardServer对象
+     * 根据bean对象的全类名查找出ManagedMBean对象  然后根据ManagedBean对象创建一个动态的MBean对象
+     * 动态的MBean对象持有对ManagedMBean和bean对象的引用
+     * 将动态的MBean对象注册到MBeanServer仓库
+     * @param bean MBean对象
+     * @param oname 比如Catalina:type=server
+     * @param type 类型 MBean对象的全类名
+     * @throws Exception
      */
     public void registerComponent(Object bean, ObjectName oname, String type) throws Exception {
         if (log.isDebugEnabled()) {
             log.debug("Managed= " + oname);
         }
 
-        if (bean == null) {
+        if (bean == null) {//将要注册到MBeanServer仓库的MBean对象不能为null
             log.error("Null component " + oname );
             return;
         }
 
         try {
-            if (type == null) {
+            if (type == null) {//如果指定全类名
+                //获取MBean对象的全类名
                 type = bean.getClass().getName();
             }
 
+            //获取对象的ManagedBean对象
             ManagedBean managed = findManagedBean(null, bean.getClass(), type);
 
-            // The real mbean is created and registered
+            //创建一个动态的MBean对象
             DynamicMBean mbean = managed.createMBean(bean);
 
             if (getMBeanServer().isRegistered(oname)) {
@@ -631,6 +631,7 @@ public class Registry implements RegistryMBean, MBeanRegistration {
                 getMBeanServer().unregisterMBean(oname);
             }
 
+            //将动态的mbean对象 注册到MBeanServer仓库  动态mbean对象 持有对bean以及managedBean的引用
             getMBeanServer().registerMBean(mbean, oname);
         } catch (Exception ex) {
             log.error("Error registering " + oname, ex );
@@ -640,31 +641,34 @@ public class Registry implements RegistryMBean, MBeanRegistration {
 
 
     /**
-     * Lookup the component descriptor in the package and in the parent
-     * packages.
-     *
-     * @param packageName The package name
-     * @param classLoader The class loader
+     * 加载描述器对象
+     * @param packageName 包名
+     * @param classLoader 类加载器对象
      */
     public void loadDescriptors(String packageName, ClassLoader classLoader) {
+        //将包名中的.用/替换
         String res = packageName.replace('.', '/');
 
         if (log.isTraceEnabled()) {
             log.trace("Finding descriptor " + res);
         }
 
+        //如果之前搜素过包路径  直接返回
         if (searchedPaths.get(packageName) != null) {
             return;
         }
 
+        //描述器文件路径
         String descriptors = res + "/mbeans-descriptors.xml";
+        //类加载器打开资源
         URL dURL = classLoader.getResource(descriptors);
 
-        if (dURL == null) {
+        if (dURL == null) {//如果包下的mbeans-descriptors.xml文件不存在 直接返回
             return;
         }
 
         log.debug("Found " + dURL);
+        //将包下的url路径放入缓存
         searchedPaths.put(packageName, dURL);
         try {
             load("MbeansDescriptorsDigesterSource", dURL, null);
@@ -708,6 +712,12 @@ public class Registry implements RegistryMBean, MBeanRegistration {
     }
 
 
+    /**
+     * 根据资源的类名 获取建模资源
+     * @param type 建模资源类名
+     * @return
+     * @throws Exception
+     */
     private ModelerSource getModelerSource(String type) throws Exception {
         if (type == null)
             type = "MbeansDescriptorsDigesterSource";
@@ -715,7 +725,10 @@ public class Registry implements RegistryMBean, MBeanRegistration {
             type = "org.apache.tomcat.util.modeler.modules." + type;
         }
 
+        //获取 MbeansDescriptorsDigesterSource类
         Class<?> c = Class.forName(type);
+
+        //创建MbeansDescriptorsDigesterSource对象
         ModelerSource ds = (ModelerSource) c.getConstructor().newInstance();
         return ds;
     }

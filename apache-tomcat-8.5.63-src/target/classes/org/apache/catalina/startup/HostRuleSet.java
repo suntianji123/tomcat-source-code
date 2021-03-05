@@ -24,12 +24,7 @@ import org.apache.tomcat.util.digester.RuleSetBase;
 
 
 /**
- * <p><strong>RuleSet</strong> for processing the contents of a
- * Host definition element.  This <code>RuleSet</code> does NOT include
- * any rules for nested Context which should be added via instances of
- * <code>ContextRuleSet</code>.</p>
- *
- * @author Craig R. McClanahan
+ * 解析Server/Service/Enginer/Host变迁的规则类
  */
 @SuppressWarnings("deprecation")
 public class HostRuleSet extends RuleSetBase {
@@ -39,7 +34,7 @@ public class HostRuleSet extends RuleSetBase {
 
 
     /**
-     * The matching pattern prefix to use for recognizing our elements.
+     * 前缀
      */
     protected final String prefix;
 
@@ -72,27 +67,30 @@ public class HostRuleSet extends RuleSetBase {
 
 
     /**
-     * <p>Add the set of Rule instances defined in this RuleSet to the
-     * specified <code>Digester</code> instance, associating them with
-     * our namespace URI (if any).  This method should only be called
-     * by a Digester instance.</p>
-     *
+     * 添加子标签解析规则
      * @param digester Digester instance to which the new Rule instances
-     *  should be added.
      */
     @Override
     public void addRuleInstances(Digester digester) {
 
+        //解析Server/Service/Enginer/Host标签
+        //创建StandardHost对象  如果标签中的属性className指定了class全类名 使用用户指定的class全类名
         digester.addObjectCreate(prefix + "Host",
                                  "org.apache.catalina.core.StandardHost",
                                  "className");
+        //设置StandardHost对象的属性
         digester.addSetProperties(prefix + "Host");
+
+        //设置StandardHost容器对象的parentClassLoader为StandardEnginer容器对象的parentClassLoader
         digester.addRule(prefix + "Host",
                          new CopyParentClassLoaderRule());
+        //给StandardHost容器对象添加一个HostConfig 生命周期监听器
         digester.addRule(prefix + "Host",
                          new LifecycleListenerRule
                          ("org.apache.catalina.startup.HostConfig",
                           "hostConfigClass"));
+        //将StandardHost对象作为参数 执行StandardEngine的addChild方法
+        //将StandardHost作为子容器 添加StandardEngine父容器的子容器表
         digester.addSetNext(prefix + "Host",
                             "addChild",
                             "org.apache.catalina.Container");
@@ -120,10 +118,13 @@ public class HostRuleSet extends RuleSetBase {
 
         digester.addRuleSet(new RealmRuleSet(prefix + "Host/"));
 
+        //创建AccessLogValve对象
         digester.addObjectCreate(prefix + "Host/Valve",
                                  null, // MUST be specified in the element
                                  "className");
+        //设置AccessLogValve对象的属性值
         digester.addSetProperties(prefix + "Host/Valve");
+        //将AccessLogValve对象作为参数 执行StandardHost对象的addValve方法
         digester.addSetNext(prefix + "Host/Valve",
                             "addValve",
                             "org.apache.catalina.Valve");

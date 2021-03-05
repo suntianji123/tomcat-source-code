@@ -99,7 +99,7 @@ public class Catalina {
 
 
     /**
-     * The server component we are starting or stopping.
+     * 服务器对象
      */
     protected Server server = null;
 
@@ -174,11 +174,19 @@ public class Catalina {
         return ClassLoader.getSystemClassLoader();
     }
 
+    /**
+     * 设置服务器对象
+     * @param server 服务器对象
+     */
     public void setServer(Server server) {
         this.server = server;
     }
 
 
+    /**
+     * 获取服务器对象
+     * @return
+     */
     public Server getServer() {
         return server;
     }
@@ -305,27 +313,39 @@ public class Catalina {
         //设置使用上下文加载器
         digester.setUseContextClassLoader(true);
 
-        // 配置 创建Server的规则对象
+        // 设置 解析server.xml中的Server标签 创建Server对象
         digester.addObjectCreate("Server",
                                  "org.apache.catalina.core.StandardServer",
                                  "className");
-
+        //设置Server对象的属性
         digester.addSetProperties("Server");
+
+        //将Server对象设置Catalina对象
         digester.addSetNext("Server",
                             "setServer",
                             "org.apache.catalina.Server");
 
+        //创建NamingResourcesImpl对象
         digester.addObjectCreate("Server/GlobalNamingResources",
                                  "org.apache.catalina.deploy.NamingResourcesImpl");
+
+        //设置NamingResourcesImpl对象的属性值
         digester.addSetProperties("Server/GlobalNamingResources");
+
+        //将NamingResourcesImpl添加到Server对象的globalNamingResources属性
         digester.addSetNext("Server/GlobalNamingResources",
                             "setGlobalNamingResources",
                             "org.apache.catalina.deploy.NamingResourcesImpl");
 
+        //设置 解析server.xml中的Server标签下的子标签Listener标签 创建Listener对象 设置属性
         digester.addObjectCreate("Server/Listener",
-                                 null, // MUST be specified in the element
+                                 null, // 必须通过server.xml配置文件制定监听器的全类名
                                  "className");
+
+        //设置通过标签创建的Listener对象的属性
         digester.addSetProperties("Server/Listener");
+
+        //将Listener对象添加到Server的生命周期监听器列表
         digester.addSetNext("Server/Listener",
                             "addLifecycleListener",
                             "org.apache.catalina.LifecycleListener");
@@ -357,10 +377,16 @@ public class Catalina {
                             "org.apache.catalina.Executor");
 
 
+        //创建Connector连接器对象  设置连接器的协议处理器
+        //如果标签的属性中 指定了executor属性 设置连接器的协议处理器的执行器
+        //如果标签的属性中 指定了sslImplementationName 设置连接器的协议处理器的ssl证书实现器名称
         digester.addRule("Server/Service/Connector",
                          new ConnectorCreateRule());
+        //设置Connector对象的属性值
         digester.addRule("Server/Service/Connector",
                          new SetAllPropertiesRule(new String[]{"executor", "sslImplementationName"}));
+
+        //执行父标签对象StandardService的addConnecot方法
         digester.addSetNext("Server/Service/Connector",
                             "addConnector",
                             "org.apache.catalina.connector.Connector");
@@ -410,8 +436,10 @@ public class Catalina {
                             "addUpgradeProtocol",
                             "org.apache.coyote.UpgradeProtocol");
 
-        // Add RuleSets for nested elements
+        //添加Server/GlobalNamingResources/标签下所有子标签的解析规则
         digester.addRuleSet(new NamingRuleSet("Server/GlobalNamingResources/"));
+
+        //添加Server/Service/标签下所有的子标签的解析规则
         digester.addRuleSet(new EngineRuleSet("Server/Service/"));
         digester.addRuleSet(new HostRuleSet("Server/Service/Engine/"));
         digester.addRuleSet(new ContextRuleSet("Server/Service/Engine/Host/"));
@@ -541,7 +569,8 @@ public class Catalina {
 
 
     /**
-     * 加载方法
+     * 创建StandardServer LifecycleListener StandardService StandardEnginer Connector对象
+     * 初始化这些对象 将对象包装为动态的MBean 将他们注册到MBeanServer仓库
      */
     public void load() {
 
@@ -666,15 +695,19 @@ public class Catalina {
             }
         }
 
+        //设置StandardServer对象的Catalina对象
         getServer().setCatalina(this);
+        //设置StandardServer对象的Catalina-home路径文件夹对象
         getServer().setCatalinaHome(Bootstrap.getCatalinaHomeFile());
+        //设置StandardServer对象的Catalina-base路径文件件对象
         getServer().setCatalinaBase(Bootstrap.getCatalinaBaseFile());
 
-        // Stream redirection
+        //初始化流
         initStreams();
 
         // Start the new server
         try {
+            //初始化服务器
             getServer().init();
         } catch (LifecycleException e) {
             if (Boolean.getBoolean("org.apache.catalina.startup.EXIT_ON_INIT_FAILURE")) {
@@ -709,11 +742,11 @@ public class Catalina {
 
 
     /**
-     * Start a new server instance.
+     * 启动方法
      */
     public void start() {
 
-        if (getServer() == null) {
+        if (getServer() == null) {//init没有完成 加载服务器
             load();
         }
 
@@ -726,6 +759,7 @@ public class Catalina {
 
         // Start the new server
         try {
+            //启动服务器
             getServer().start();
         } catch (LifecycleException e) {
             log.fatal(sm.getString("catalina.serverStartFail"), e);
@@ -841,9 +875,13 @@ public class Catalina {
     }
 
 
+    /**
+     * 初始化流
+     */
     protected void initStreams() {
-        // Replace System.out and System.err with a custom PrintStream
+       //设置System.out处理
         System.setOut(new SystemLogHandler(System.out));
+        //设置System.err处理
         System.setErr(new SystemLogHandler(System.err));
     }
 

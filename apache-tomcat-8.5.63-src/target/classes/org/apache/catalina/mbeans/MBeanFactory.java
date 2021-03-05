@@ -49,7 +49,7 @@ import org.apache.tomcat.util.res.StringManager;
 
 
 /**
- * @author Amy Roh
+ * 生产MBeanFactory的工厂类
  */
 public class MBeanFactory {
 

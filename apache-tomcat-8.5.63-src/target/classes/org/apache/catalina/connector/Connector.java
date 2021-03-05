@@ -50,10 +50,7 @@ import org.apache.tomcat.util.res.StringManager;
 
 
 /**
- * Implementation of a Coyote connector.
- *
- * @author Craig R. McClanahan
- * @author Remy Maucherat
+ * tcp连接器对象
  */
 public class Connector extends LifecycleMBeanBase  {
 
@@ -69,31 +66,42 @@ public class Connector extends LifecycleMBeanBase  {
 
     public static final String INTERNAL_EXECUTOR_NAME = "Internal";
 
-
-    // ------------------------------------------------------------ Constructor
-
+    /**
+     * 实例化一个连接器对象
+     */
     public Connector() {
         this(null);
     }
 
 
+    /**
+     * 实例化一个连接器对象
+     * @param protocol 协议类型 HTTP/1.1
+     */
     public Connector(String protocol) {
         setProtocol(protocol);
         // Instantiate protocol handler
+        //协议处理器
         ProtocolHandler p = null;
         try {
+
+            //获取协议处理器的class类对象
             Class<?> clazz = Class.forName(protocolHandlerClassName);
+
+            //通过反射创建一个协议处理器对象
             p = (ProtocolHandler) clazz.getConstructor().newInstance();
         } catch (Exception e) {
             log.error(sm.getString(
                     "coyoteConnector.protocolHandlerInstantiationFailed"), e);
         } finally {
+            //设置协议处理器
             this.protocolHandler = p;
         }
 
-        if (Globals.STRICT_SERVLET_COMPLIANCE) {
+        if (Globals.STRICT_SERVLET_COMPLIANCE) {//默认为false
             uriCharset = StandardCharsets.ISO_8859_1;
         } else {
+            //uri路径字符集 为UTF_8
             uriCharset = StandardCharsets.UTF_8;
         }
 
@@ -108,7 +116,7 @@ public class Connector extends LifecycleMBeanBase  {
 
 
     /**
-     * The <code>Service</code> we are associated with (if any).
+     * 连接器的服务对象
      */
     protected Service service = null;
 
@@ -172,7 +180,7 @@ public class Connector extends LifecycleMBeanBase  {
 
 
     /**
-     * The redirect port for non-SSL to SSL redirects.
+     * 直接连接的端口号
      */
     protected int redirectPort = 443;
 
@@ -224,13 +232,12 @@ public class Connector extends LifecycleMBeanBase  {
     protected int maxSavePostSize = 4 * 1024;
 
     /**
-     * Comma-separated list of HTTP methods that will be parsed according
-     * to POST-style rules for application/x-www-form-urlencoded request bodies.
+     * 默认解析客户端消息的方法类型 使用post
      */
     protected String parseBodyMethods = "POST";
 
     /**
-     * A Set of methods determined by {@link #parseBodyMethods}.
+     * 解析客户端消息字节方法类型名集合 默认只有POST
      */
     protected HashSet<String> parseBodyMethodsSet;
 
@@ -242,21 +249,21 @@ public class Connector extends LifecycleMBeanBase  {
 
 
     /**
-     * Coyote Protocol handler class name.
-     * Defaults to the Coyote HTTP/1.1 protocolHandler.
+     * HTTP/1.1协议处理器全类名
+     * 如果系统库中存在tcnative-1.dll", "libtcnative-1.dll"库 者使用Http11AprProtocol
      */
     protected String protocolHandlerClassName =
         "org.apache.coyote.http11.Http11NioProtocol";
 
 
     /**
-     * Coyote protocol handler.
+     * 连接器的协议处理器 http/1.1协议处理器
      */
     protected final ProtocolHandler protocolHandler;
 
 
     /**
-     * Coyote adapter.
+     * 土狼适配器
      */
     protected Adapter adapter = null;
 
@@ -278,7 +285,7 @@ public class Connector extends LifecycleMBeanBase  {
 
 
     /**
-     * The URI encoding in use.
+     * uri路径字符集 默认为UTF_8
      */
     private Charset uriCharset = StandardCharsets.UTF_8;
 
@@ -297,6 +304,9 @@ public class Connector extends LifecycleMBeanBase  {
     protected boolean useBodyEncodingForURI = false;
 
 
+    /**
+     * 用户设置的属性名与系统使用的属性map之间的映射关系map
+     */
     protected static final HashMap<String,String> replacements = new HashMap<>();
     static {
         replacements.put("acceptCount", "backlog");
@@ -324,17 +334,20 @@ public class Connector extends LifecycleMBeanBase  {
 
 
     /**
-     * Set a property on the protocol handler.
-     *
-     * @param name the property name
-     * @param value the property value
-     * @return <code>true</code> if the property was successfully set
+     * 设置属性
+     * @param name 属性名 比如connectionTimeout
+     * @param value 属性值 比如20000
+     * @return
      */
     public boolean setProperty(String name, String value) {
+        //系统内部的属性名
         String repl = name;
         if (replacements.get(name) != null) {
+            //soTimeout
             repl = replacements.get(name);
         }
+
+        //执行协议处理器的设置属性方法 设置协议处理器的属性值
         return IntrospectionUtils.setProperty(protocolHandler, repl, value);
     }
 
@@ -378,9 +391,8 @@ public class Connector extends LifecycleMBeanBase  {
 
 
     /**
-     * Set the <code>Service</code> with which we are associated (if any).
-     *
-     * @param service The service that owns this Engine
+     * 连接器的服务对象
+     * @param service 服务对象
      */
     public void setService(Service service) {
         this.service = service;
@@ -629,23 +641,21 @@ public class Connector extends LifecycleMBeanBase  {
 
 
     /**
-     * Set the Coyote protocol which will be used by the connector.
-     *
-     * @param protocol The Coyote protocol name
-     *
-     * @deprecated Will be removed in Tomcat 9. Protocol must be configured via
-     *             the constructor
+     * 设置协议方法
+     * @param protocol 协议
      */
     @Deprecated
     public void setProtocol(String protocol) {
 
+        //默认系统库中没有 "tcnative-1", "libtcnative-1" 因此apr连接器不可用
         boolean aprConnector = AprLifecycleListener.isAprAvailable() &&
                 AprLifecycleListener.getUseAprConnector();
 
         if ("HTTP/1.1".equals(protocol) || protocol == null) {
-            if (aprConnector) {
+            if (aprConnector) {//apr连接器默认不可用
                 setProtocolHandlerClassName("org.apache.coyote.http11.Http11AprProtocol");
             } else {
+                //设置协议处理器名
                 setProtocolHandlerClassName("org.apache.coyote.http11.Http11NioProtocol");
             }
         } else if ("AJP/1.3".equals(protocol)) {
@@ -669,13 +679,8 @@ public class Connector extends LifecycleMBeanBase  {
 
 
     /**
-     * Set the class name of the Coyote protocol handler which will be used
-     * by the connector.
-     *
-     * @param protocolHandlerClassName The new class name
-     *
-     * @deprecated Will be removed in Tomcat 9. Protocol must be configured via
-     *             the constructor
+     * 设置协议处理器名
+     * @param protocolHandlerClassName 协议处理器名
      */
     @Deprecated
     public void setProtocolHandlerClassName(String protocolHandlerClassName) {
@@ -745,9 +750,8 @@ public class Connector extends LifecycleMBeanBase  {
 
 
     /**
-     * Set the redirect port number.
-     *
-     * @param redirectPort The redirect port number (non-SSL to SSL)
+     * 设置连接连接的端口号
+     * @param redirectPort 直接连接的端口号
      */
     public void setRedirectPort(int redirectPort) {
         this.redirectPort = redirectPort;
@@ -1038,17 +1042,27 @@ public class Connector extends LifecycleMBeanBase  {
     }
 
 
+    /**
+     * 初始化连接器对象
+     * 实例化土狼适配器 将土狼适配器设置给协议处理器
+     * 设置解析客户端消息体的方法类型集合 默认只有POST
+     * 初始化协议处理器
+     * @throws LifecycleException
+     */
     @Override
     protected void initInternal() throws LifecycleException {
 
+        //将连接器对象包装为动态MBean 注册到MBeanServer仓库 索引名Connector
         super.initInternal();
 
-        // Initialize adapter
+        //实例化一个土狼适配器
         adapter = new CoyoteAdapter(this);
+        //将土狼适配器设置到协议处理器
         protocolHandler.setAdapter(adapter);
 
         // Make sure parseBodyMethodsSet has a default
-        if (null == parseBodyMethodsSet) {
+        if (null == parseBodyMethodsSet) {//解析客户端消息方法集合为nulll
+            //将POST设置到解析客户端消息的方法类型集合
             setParseBodyMethods(getParseBodyMethods());
         }
 
@@ -1072,6 +1086,7 @@ public class Connector extends LifecycleMBeanBase  {
         }
 
         try {
+            //初始化协议处理器
             protocolHandler.init();
         } catch (Exception e) {
             throw new LifecycleException(

@@ -513,7 +513,7 @@ public abstract class AbstractHttp11Protocol<S> extends AbstractProtocol<S> {
 
 
     /**
-     * The upgrade protocol instances configured.
+     * 升级的协议列表  比如webSocket
      */
     private final List<UpgradeProtocol> upgradeProtocols = new ArrayList<>();
     @Override

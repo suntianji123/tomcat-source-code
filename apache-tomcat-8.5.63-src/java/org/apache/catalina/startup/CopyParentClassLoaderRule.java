@@ -27,12 +27,7 @@ import org.xml.sax.Attributes;
 
 
 /**
- * <p>Rule that copies the <code>parentClassLoader</code> property from the
- * next-to-top item on the stack (which must be a <code>Container</code>)
- * to the top item on the stack (which must also be a
- * <code>Container</code>).</p>
- *
- * @author Craig R. McClanahan
+ * 复制父类标签对象类加载器规则
  */
 public class CopyParentClassLoaderRule extends Rule {
 
@@ -51,11 +46,11 @@ public class CopyParentClassLoaderRule extends Rule {
 
 
     /**
-     * Handle the beginning of an XML element.
-     *
-     * @param attributes The attributes of this element
-     *
-     * @exception Exception if a processing error occurs
+     *  开始解析标签
+     * @param namespace the namespace URI of the matching element, or an
+     * @param name the local name if the parser is namespace aware, or just
+     * @param attributes The attribute list of this element
+     * @throws Exception
      */
     @Override
     public void begin(String namespace, String name, Attributes attributes)
@@ -63,12 +58,18 @@ public class CopyParentClassLoaderRule extends Rule {
 
         if (digester.getLogger().isDebugEnabled())
             digester.getLogger().debug("Copying parent class loader");
+        //获取当前标签对象 比如StandardHost对象
         Container child = (Container) digester.peek(0);
+        //获取父类标签对象 比如StandardEnginer对象
         Object parent = digester.peek(1);
+
+        //获取父类方法 getParentClassLoader
         Method method =
             parent.getClass().getMethod("getParentClassLoader", new Class[0]);
+        //执行父标签的getParentClassLoader方法 获取父标签对象class类加载器
         ClassLoader classLoader =
             (ClassLoader) method.invoke(parent, new Object[0]);
+        //设置当前标签对象的类加载器
         child.setParentClassLoader(classLoader);
 
     }

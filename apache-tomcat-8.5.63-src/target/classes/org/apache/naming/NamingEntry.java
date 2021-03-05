@@ -18,18 +18,26 @@ package org.apache.naming;
 
 
 /**
- * Represents a binding in a NamingContext.
- *
- * @author Remy Maucherat
+ * 命名实体
  */
 public class NamingEntry {
 
     public static final int ENTRY = 0;
     public static final int LINK_REF = 1;
+
+    /**
+     * 引用对象
+     */
     public static final int REFERENCE = 2;
     public static final int CONTEXT = 10;
 
 
+    /**
+     * 实例化一个命名实体
+     * @param name 实体名
+     * @param value 实体对象
+     * @param type  实体类型
+     */
     public NamingEntry(String name, Object value, int type) {
         this.name = name;
         this.value = value;

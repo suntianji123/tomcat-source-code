@@ -60,10 +60,7 @@ import org.apache.tomcat.util.res.StringManager;
 
 
 /**
- * Holds and manages the naming resources defined in the J2EE Enterprise
- * Naming Context and their associated JNDI context.
- *
- * @author Remy Maucherat
+ * 命名的资源类
  */
 public class NamingResourcesImpl extends LifecycleMBeanBase
         implements Serializable, NamingResources {
@@ -74,6 +71,9 @@ public class NamingResourcesImpl extends LifecycleMBeanBase
 
     private static final StringManager sm = StringManager.getManager(NamingResourcesImpl.class);
 
+    /**
+     * 资源是否需要明确注册
+     */
     private volatile boolean resourceRequireExplicitRegistration = false;
 
     // ----------------------------------------------------------- Constructors
@@ -97,7 +97,7 @@ public class NamingResourcesImpl extends LifecycleMBeanBase
 
 
     /**
-     * Set of naming entries, keyed by name.
+     *已经添加的资源名字集合
      */
     private final Set<String> entries = new HashSet<>();
 
@@ -109,7 +109,7 @@ public class NamingResourcesImpl extends LifecycleMBeanBase
 
 
     /**
-     * The environment entries for this web application, keyed by name.
+     * 环境map
      */
     private final Map<String, ContextEnvironment> envs = new HashMap<>();
 
@@ -137,7 +137,7 @@ public class NamingResourcesImpl extends LifecycleMBeanBase
 
 
     /**
-     * The resource references for this web application, keyed by name.
+     * 资源集合 map
      */
     private final HashMap<String, ContextResource> resources =
         new HashMap<>();
@@ -294,9 +294,11 @@ public class NamingResourcesImpl extends LifecycleMBeanBase
                     environment.getType()));
         }
 
+        //将资源名添加到资源名集合
         entries.add(environment.getName());
 
-        synchronized (envs) {
+        synchronized (envs) {//环境map添加锁
+
             environment.setNamingResources(this);
             envs.put(environment.getName(), environment);
         }
@@ -378,9 +380,8 @@ public class NamingResourcesImpl extends LifecycleMBeanBase
 
 
     /**
-     * Add a property change listener to this component.
-     *
-     * @param listener The listener to add
+     * 添加属性改变监听器  比如当管理的resources资源列表对象改变时 执行NamingContextListener的属性改变的时间
+     * @param listener 比如添加NamingContextListener对象
      */
     public void addPropertyChangeListener(PropertyChangeListener listener) {
 
@@ -390,28 +391,33 @@ public class NamingResourcesImpl extends LifecycleMBeanBase
 
 
     /**
-     * Add a resource reference for this web application.
-     *
-     * @param resource New resource reference
+     * 添加资源方法
+     * @param resource 资源对象
      */
     @Override
     public void addResource(ContextResource resource) {
 
-        if (entries.contains(resource.getName())) {
+        if (entries.contains(resource.getName())) {//如果已经包含这个资源 直接返回
             return;
         } else {
-            if (!checkResourceType(resource)) {
+            if (!checkResourceType(resource)) {//检查资源类型
                 throw new IllegalArgumentException(sm.getString(
                         "namingResources.resourceTypeFail", resource.getName(),
                         resource.getType()));
             }
+
+            //将资源名添加到资源名map
             entries.add(resource.getName());
         }
 
-        synchronized (resources) {
+        synchronized (resources) {//资源加锁
+            //设置资源的名字资源
             resource.setNamingResources(this);
+            //将资源对象放入名字资源的资源map
             resources.put(resource.getName(), resource);
         }
+
+        //触发resouce属性事件时间
         support.firePropertyChange("resource", null, resource);
 
         // Register with JMX
@@ -954,16 +960,27 @@ public class NamingResourcesImpl extends LifecycleMBeanBase
 
     // ------------------------------------------------------- Lifecycle methods
 
+    /**
+     * 初始化全局的命名资源
+     * 将当前命名资源包装为动态的MBean对象 注册到MBeanServer仓库 索引名Catalina:type=NamingResources
+     * 遍历命名资源对象 管理的所有的:
+     * 上下文资源：遍历所有的上下文资源，将上下文资源包装为动态的MBean对象 注册到MBeanServer仓库
+     * 环境：遍历所有的环境，将环境包装为动态的MBean对象 注册到MBeanServer仓库
+     * 链接资源：遍历所有的链接资源，将链接资源包装为动态的MBean对象 注册到MBeanServer仓库
+     * @throws LifecycleException
+     */
     @Override
     protected void initInternal() throws LifecycleException {
+        //将当前全局命名资源对象包装为动态的MBean对象 将动态的MBean对象注册到MBeanServer仓库 索引名type=NamingResources
         super.initInternal();
 
-        // Set this before we register currently known naming resources to avoid
-        // timing issues. Duplication registration is not an issue.
+        //设置资源需要明确的注册
         resourceRequireExplicitRegistration = true;
 
-        for (ContextResource cr : resources.values()) {
+        for (ContextResource cr : resources.values()) {//遍历当前命名资源 管理的所有的资源
             try {
+                //遍历当前资源对象  为当前资源对象创建动态的MBean对象 并将动态的MBean对象 注册到MBeanServer仓库
+                //索引名 比如  Catalina:type=Resource,resourcetype=Global,class=org.apache.catalina.UserDatabase,name=UserDatabase
                 MBeanUtils.createMBean(cr);
             } catch (Exception e) {
                 log.warn(sm.getString(
@@ -971,8 +988,9 @@ public class NamingResourcesImpl extends LifecycleMBeanBase
             }
         }
 
-        for (ContextEnvironment ce : envs.values()) {
+        for (ContextEnvironment ce : envs.values()) {//遍历当前命名资源 管理的所有的环境
             try {
+                //遍历当前环境对象 为当前环境对象创建动态的MBean对象 并将动态的MBean对象 注册到MBeanServer仓库
                 MBeanUtils.createMBean(ce);
             } catch (Exception e) {
                 log.warn(sm.getString(
@@ -980,8 +998,9 @@ public class NamingResourcesImpl extends LifecycleMBeanBase
             }
         }
 
-        for (ContextResourceLink crl : resourceLinks.values()) {
+        for (ContextResourceLink crl : resourceLinks.values()) {//遍历当前命名资源管理的所有链接资源
             try {
+                //遍历当前链接对象 为当前链接资源对象创建动态MBean对象  并将动态的MBean对象  注册到MBeanServer仓库
                 MBeanUtils.createMBean(crl);
             } catch (Exception e) {
                 log.warn(sm.getString(
@@ -1133,6 +1152,10 @@ public class NamingResourcesImpl extends LifecycleMBeanBase
     }
 
 
+    /**
+     * 当前对象包装为动态的MBean对象后 注册到MBeanServer仓库 返回的索引名
+     * @return 索引名  type=NamingResources
+     */
     @Override
     protected String getObjectNameKeyProperties() {
         Object c = getContainer();
@@ -1145,34 +1168,32 @@ public class NamingResourcesImpl extends LifecycleMBeanBase
     }
 
     /**
-     * Checks that the configuration of the type for the specified resource is
-     * consistent with any injection targets and if the type is not specified,
-     * tries to configure the type based on the injection targets
-     *
-     * @param resource  The resource to check
-     *
-     * @return  <code>true</code> if the type for the resource is now valid (if
-     *          previously <code>null</code> this means it is now set) or
-     *          <code>false</code> if the current resource type is inconsistent
-     *          with the injection targets and/or cannot be determined
+     * 检查资源的class类型
+     * @param resource 资源的全类名 例如：org.apache.catalina.UserDatabase
+     * @return
      */
     private boolean checkResourceType(ResourceBase resource) {
-        if (!(container instanceof Context)) {
+        if (!(container instanceof Context)) {//container 默认值null
             // Only Context's will have injection targets
             return true;
         }
 
         if (resource.getInjectionTargets() == null ||
-                resource.getInjectionTargets().size() == 0) {
+                resource.getInjectionTargets().size() == 0) {//注入的目标对象
             // No injection targets so use the defined type for the resource
             return true;
         }
 
+        //将container转为Context类型 默认为nulll
         Context context = (Context) container;
 
+        //获取资源的全类型 org.apache.catalina.UserDatabase
         String typeName = resource.getType();
+
+        //资源类型的字符串解析为class对象
         Class<?> typeClass = null;
-        if (typeName != null) {
+        if (typeName != null) {//资源类名不为null
+            //加载class
             typeClass = Introspection.loadClass(context, typeName);
             if (typeClass == null) {
                 // Can't load the type - will trigger a failure later so don't

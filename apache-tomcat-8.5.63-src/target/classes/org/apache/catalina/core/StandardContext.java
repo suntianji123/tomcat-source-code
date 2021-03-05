@@ -804,6 +804,9 @@ public class StandardContext extends ContainerBase
     });
     protected ThreadBindingListener threadBindingListener = DEFAULT_NAMING_LISTENER;
 
+    /**
+     * 访问命名资源对象的秘钥对象
+     */
     private final Object namingToken = new Object();
 
     private CookieProcessor cookieProcessor;

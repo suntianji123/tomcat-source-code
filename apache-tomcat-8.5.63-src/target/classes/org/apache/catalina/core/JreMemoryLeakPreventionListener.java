@@ -44,18 +44,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.ls.DOMImplementationLS;
 
 /**
- * Provide a workaround for known places where the Java Runtime environment can
- * cause a memory leak or lock files.
- * <p>
- * Memory leaks occur when JRE code uses
- * the context class loader to load a singleton as this will cause a memory leak
- * if a web application class loader happens to be the context class loader at
- * the time. The work-around is to initialise these singletons when Tomcat's
- * common class loader is the context class loader.
- * <p>
- * Locked files usually occur when a resource inside a JAR is accessed without
- * first disabling Jar URL connection caching. The workaround is to disable this
- * caching by default.
+ * 预防jre内存泄漏监听器
  */
 public class JreMemoryLeakPreventionListener implements LifecycleListener {
 
@@ -66,13 +55,9 @@ public class JreMemoryLeakPreventionListener implements LifecycleListener {
 
     private static final String FORK_JOIN_POOL_THREAD_FACTORY_PROPERTY =
             "java.util.concurrent.ForkJoinPool.common.threadFactory";
+
     /**
-     * Protect against the memory leak caused when the first call to
-     * <code>sun.awt.AppContext.getAppContext()</code> is triggered by a web
-     * application. Defaults to <code>false</code> since
-     * {@link java.beans.Introspector#flushCaches()} no longer uses AppContext
-     * from 1.7.0_02 onwards. Also, from 1.7.0_25 onwards, calling this method
-     * requires a graphical environment and starts an AWT thread.
+     * 是否开始app上下文保护器
      */
     private boolean appContextProtection = false;
     public boolean isAppContextProtection() { return appContextProtection; }
@@ -93,11 +78,7 @@ public class JreMemoryLeakPreventionListener implements LifecycleListener {
     }
 
     /**
-     * Protect against the memory leak caused when the first call to
-     * <code>sun.misc.GC.requestLatency(long)</code> is triggered by a web
-     * application. This first call will start a GC Daemon thread with the
-     * thread's context class loader configured to be the web application class
-     * loader. Defaults to <code>true</code>.
+     * 是否开启gc守护线程保护
      */
     private boolean gcDaemonProtection = true;
     public boolean isGcDaemonProtection() { return gcDaemonProtection; }
@@ -105,12 +86,9 @@ public class JreMemoryLeakPreventionListener implements LifecycleListener {
         this.gcDaemonProtection = gcDaemonProtection;
     }
 
-     /**
-      * Protect against the memory leak caused when the first call to
-      * <code>javax.security.auth.Policy</code> is triggered by a web
-      * application. This first call populate a static variable with a reference
-      * to the context class loader. Defaults to <code>true</code>.
-      */
+    /**
+     * 是否开启安全策略保护
+     */
      private boolean securityPolicyProtection = true;
      public boolean isSecurityPolicyProtection() {
          return securityPolicyProtection;
@@ -134,14 +112,8 @@ public class JreMemoryLeakPreventionListener implements LifecycleListener {
         this.securityLoginConfigurationProtection = securityLoginConfigurationProtection;
     }
 
-     /**
-     * Protect against the memory leak, when the initialization of the
-     * Java Cryptography Architecture is triggered by initializing
-     * a MessageDigest during web application deployment.
-     * This will occasionally start a Token Poller thread with the thread's
-     * context class loader equal to the web application class loader.
-     * Instead we initialize JCA early.
-     * Defaults to <code>true</code>.
+    /**
+     * 是否开启令牌轮训器保护
      */
     private boolean tokenPollerProtection = true;
     public boolean isTokenPollerProtection() { return tokenPollerProtection; }
@@ -162,11 +134,7 @@ public class JreMemoryLeakPreventionListener implements LifecycleListener {
     }
 
     /**
-     * XML parsing can pin a web application class loader in memory. There are
-     * multiple root causes for this. Some of these are particularly nasty as
-     * profilers may not identify any GC roots related to the leak. For example,
-     * with YourKit you need to ensure that HPROF format memory snapshots are
-     * used to be able to trace some of the leaks.
+     * 是否开启xml解析保护
      */
     private boolean xmlParsingProtection = true;
     public boolean isXmlParsingProtection() { return xmlParsingProtection; }
@@ -175,12 +143,7 @@ public class JreMemoryLeakPreventionListener implements LifecycleListener {
     }
 
     /**
-     * <code>com.sun.jndi.ldap.LdapPoolManager</code> class spawns a thread when
-     * it is initialized if the system property
-     * <code>com.sun.jndi.ldap.connect.pool.timeout</code> is greater than 0.
-     * That thread inherits the context class loader of the current thread, so
-     * that there may be a web application class loader leak if the web app
-     * is the first to use <code>LdapPoolManager</code>.
+     * 是否开启lap池保护
      */
     private boolean ldapPoolProtection = true;
     public boolean isLdapPoolProtection() { return ldapPoolProtection; }
@@ -189,10 +152,7 @@ public class JreMemoryLeakPreventionListener implements LifecycleListener {
     }
 
     /**
-     * The first access to {@link DriverManager} will trigger the loading of
-     * all {@link java.sql.Driver}s in the the current class loader. The web
-     * application level memory leak protection can take care of this in most
-     * cases but triggering the loading here has fewer side-effects.
+     * 是否开启驱动管理保护
      */
     private boolean driverManagerProtection = true;
     public boolean isDriverManagerProtection() {
@@ -228,12 +188,14 @@ public class JreMemoryLeakPreventionListener implements LifecycleListener {
         this.classesToInitialize = classesToInitialize;
     }
 
-
-
+    /**
+     * 处理生命周期事件
+     * @param event 生命周期事件对象
+     */
     @Override
     public void lifecycleEvent(LifecycleEvent event) {
         // Initialise these classes when Tomcat starts
-        if (Lifecycle.BEFORE_INIT_EVENT.equals(event.getType())) {
+        if (Lifecycle.BEFORE_INIT_EVENT.equals(event.getType())) {//初始化事件
 
             /*
              * First call to this loads all drivers visible to the current class
@@ -246,16 +208,17 @@ public class JreMemoryLeakPreventionListener implements LifecycleListener {
              *       class loader should add the JDBC driver(s) to the class
              *       path so they are loaded by the system class loader.
              */
-            if (driverManagerProtection) {
+            if (driverManagerProtection) {//如果开启驱动管理保护
+                //获取所有的驱动
                 DriverManager.getDrivers();
             }
 
+            //获取当前线程的class类加载器
             ClassLoader loader = Thread.currentThread().getContextClassLoader();
 
             try
             {
-                // Use the system classloader as the victim for all this
-                // ClassLoader pinning we're about to do.
+                //设置当前线程的类加载器为系统加载器
                 Thread.currentThread().setContextClassLoader(
                         ClassLoader.getSystemClassLoader());
 
@@ -291,25 +254,17 @@ public class JreMemoryLeakPreventionListener implements LifecycleListener {
                     java.awt.Toolkit.getDefaultToolkit();
                 }
 
-                /*
-                 * Several components end up calling
-                 * sun.misc.GC.requestLatency(long) which creates a daemon
-                 * thread without setting the TCCL.
-                 *
-                 * Those libraries / components known to trigger memory leaks
-                 * due to eventual calls to requestLatency(long) are:
-                 * - javax.management.remote.rmi.RMIConnectorServer.start()
-                 *
-                 * Note: Long.MAX_VALUE is a special case that causes the thread
-                 *       to terminate
-                 *
-                 */
+                //开启gc守护线程保护 jre9不可用
                 if (gcDaemonProtection && !JreCompat.isJre9Available()) {
                     try {
+                        //获取GC类
                         Class<?> clazz = Class.forName("sun.misc.GC");
+                        //获取GC类的requestLatency方法
                         Method method = clazz.getDeclaredMethod(
                                 "requestLatency",
                                 new Class[] {long.class});
+
+                        //设置GC回收的时间
                         method.invoke(null, Long.valueOf(Long.MAX_VALUE - 1));
                     } catch (ClassNotFoundException e) {
                         if (JreVendor.IS_ORACLE_JVM) {
@@ -375,16 +330,7 @@ public class JreMemoryLeakPreventionListener implements LifecycleListener {
                     }
                 }
 
-                /*
-                 * Creating a MessageDigest during web application startup
-                 * initializes the Java Cryptography Architecture. Under certain
-                 * conditions this starts a Token poller thread with TCCL equal
-                 * to the web application class loader.
-                 *
-                 * Instead we initialize JCA right now.
-                 *
-                 * Fixed in Java 9 onwards (from early access build 133)
-                 */
+               //开启令牌轮训器保护
                 if (tokenPollerProtection && !JreCompat.isJre9Available()) {
                     java.security.Security.getProviders();
                 }
@@ -404,18 +350,18 @@ public class JreMemoryLeakPreventionListener implements LifecycleListener {
                  * Java 8 and earlier disables caching for all URLConnections
                  */
 
-                // Set the default URL caching policy to not to cache
+                //开启网址缓存保护
                 if (urlCacheProtection) {
                     try {
+
+                        //禁用URL缓存
                         JreCompat.getInstance().disableCachingForJarUrlConnections();
                     } catch (IOException e) {
                         log.error(sm.getString("jreLeakListener.jarUrlConnCacheFail"), e);
                     }
                 }
 
-                /*
-                 * Fixed in Java 9 onwards (from early access build 133)
-                 */
+                //开始xml解析保护
                 if (xmlParsingProtection && !JreCompat.isJre9Available()) {
                     // There are two known issues with XML parsing that affect
                     // Java 7+. The issues both relate to cached Exception
@@ -437,6 +383,7 @@ public class JreMemoryLeakPreventionListener implements LifecycleListener {
                         // com.sun.org.apache.xerces.internal.dom.DOMNormalizer
                         document.normalize();
                     } catch (ParserConfigurationException e) {
+                        //记录日志
                         log.error(sm.getString("jreLeakListener.xmlParseFail"),
                                 e);
                     }

@@ -40,10 +40,7 @@ import org.apache.tomcat.util.res.StringManager;
 
 
 /**
- * Mapper listener.
- *
- * @author Remy Maucherat
- * @author Costin Manolache
+ * 文件夹监听器
  */
 public class MapperListener extends LifecycleMBeanBase
         implements ContainerListener, LifecycleListener {
@@ -54,12 +51,12 @@ public class MapperListener extends LifecycleMBeanBase
 
     // ----------------------------------------------------- Instance Variables
     /**
-     * Associated mapper.
+     * 文件夹对象
      */
     private final Mapper mapper;
 
     /**
-     * Associated service
+     * 服务对象
      */
     private final Service service;
 
@@ -79,9 +76,8 @@ public class MapperListener extends LifecycleMBeanBase
     // ----------------------------------------------------------- Constructors
 
     /**
-     * Create mapper listener.
-     *
-     * @param service The service this listener is associated with
+     * 实例化一个文件夹监听器对象
+     * @param service 服务对象
      */
     public MapperListener(Service service) {
         this.service = service;
@@ -138,6 +134,10 @@ public class MapperListener extends LifecycleMBeanBase
     }
 
 
+    /**
+     * 将当前对象包装为动态的MBean 注册到MBeanServer仓库的索引名
+     * @return
+     */
     @Override
     protected String getObjectNameKeyProperties() {
         // Same as connector but Mapper rather than Connector

@@ -42,7 +42,7 @@ public abstract class LifecycleBase implements Lifecycle {
 
 
     /**
-     * The list of registered LifecycleListeners for event notifications.
+     * 生命周期的监听器列表
      */
     private final List<LifecycleListener> lifecycleListeners = new CopyOnWriteArrayList<>();
 
@@ -85,7 +85,8 @@ public abstract class LifecycleBase implements Lifecycle {
 
 
     /**
-     * {@inheritDoc}
+     * 添加生命周期的监听器列表
+     * @param listener The listener to add
      */
     @Override
     public void addLifecycleListener(LifecycleListener listener) {
@@ -112,27 +113,35 @@ public abstract class LifecycleBase implements Lifecycle {
 
 
     /**
-     * Allow sub classes to fire {@link Lifecycle} events.
-     *
-     * @param type  Event type
-     * @param data  Data associated with event.
+     * 下发生命周期事件
+     * @param type
+     * @param data
      */
     protected void fireLifecycleEvent(String type, Object data) {
+        //实例化一个生命周期事件
         LifecycleEvent event = new LifecycleEvent(this, type, data);
+        //遍历所有生命周期监听器
         for (LifecycleListener listener : lifecycleListeners) {
+            //监听器执行处理生命周期事件
             listener.lifecycleEvent(event);
         }
     }
 
 
+    /**
+     * 初始化生命周期对象
+     * @throws LifecycleException
+     */
     @Override
     public final synchronized void init() throws LifecycleException {
-        if (!state.equals(LifecycleState.NEW)) {
+        if (!state.equals(LifecycleState.NEW)) {//对象不是新创建
             invalidTransition(Lifecycle.BEFORE_INIT_EVENT);
         }
 
         try {
+            //设置状态为初始化中
             setStateInternal(LifecycleState.INITIALIZING, null, false);
+            //初始化本地事件
             initInternal();
             setStateInternal(LifecycleState.INITIALIZED, null, false);
         } catch (Throwable t) {
@@ -151,7 +160,8 @@ public abstract class LifecycleBase implements Lifecycle {
 
 
     /**
-     * {@inheritDoc}
+     * 启动生命周期对象的方法
+     * @throws LifecycleException
      */
     @Override
     public final synchronized void start() throws LifecycleException {
@@ -179,7 +189,10 @@ public abstract class LifecycleBase implements Lifecycle {
         }
 
         try {
+            //设置状态为启动准备
             setStateInternal(LifecycleState.STARTING_PREP, null, false);
+
+            //启动本地生命周期对象
             startInternal();
             if (state.equals(LifecycleState.FAILED)) {
                 // This is a 'controlled' failure. The component put itself into the
@@ -201,17 +214,8 @@ public abstract class LifecycleBase implements Lifecycle {
 
 
     /**
-     * Sub-classes must ensure that the state is changed to
-     * {@link LifecycleState#STARTING} during the execution of this method.
-     * Changing state will trigger the {@link Lifecycle#START_EVENT} event.
-     *
-     * If a component fails to start it may either throw a
-     * {@link LifecycleException} which will cause it's parent to fail to start
-     * or it can place itself in the error state in which case {@link #stop()}
-     * will be called on the failed component but the parent component will
-     * continue to start normally.
-     *
-     * @throws LifecycleException Start error occurred
+     * 启动本地生命周期对象
+     * @throws LifecycleException
      */
     protected abstract void startInternal() throws LifecycleException;
 
@@ -383,6 +387,13 @@ public abstract class LifecycleBase implements Lifecycle {
     }
 
 
+    /**
+     * 设置本地状态
+     * @param state 状态
+     * @param data 数据
+     * @param check 是否检查
+     * @throws LifecycleException
+     */
     private synchronized void setStateInternal(LifecycleState state, Object data, boolean check)
             throws LifecycleException {
 
@@ -417,7 +428,9 @@ public abstract class LifecycleBase implements Lifecycle {
             }
         }
 
+        //设置状态
         this.state = state;
+        //获取生命周期事件
         String lifecycleEvent = state.getLifecycleEvent();
         if (lifecycleEvent != null) {
             fireLifecycleEvent(lifecycleEvent, data);
@@ -425,6 +438,11 @@ public abstract class LifecycleBase implements Lifecycle {
     }
 
 
+    /**
+     * 不正确的过度
+     * @param type 类型
+     * @throws LifecycleException
+     */
     private void invalidTransition(String type) throws LifecycleException {
         String msg = sm.getString("lifecycleBase.invalidTransition", type, toString(), state);
         throw new LifecycleException(msg);

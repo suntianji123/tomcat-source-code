@@ -22,14 +22,7 @@ import java.util.EmptyStackException;
 import java.util.Stack;
 
 /**
- * This helper class may be used to do sophisticated redirection of
- * System.out and System.err on a per Thread basis.
- *
- * A stack is implemented per Thread so that nested startCapture
- * and stopCapture can be used.
- *
- * @author Remy Maucherat
- * @author Glenn L. Nielsen
+ * 系统日志处理器类
  */
 public class SystemLogHandler extends PrintStream {
 
@@ -38,9 +31,8 @@ public class SystemLogHandler extends PrintStream {
 
 
     /**
-     * Construct the handler to capture the output of the given steam.
-     *
-     * @param wrapped The stream to capture
+     * 实例化一个系统日志处理器
+     * @param wrapped 被包装的打印流对象   System.out  / System.err
      */
     public SystemLogHandler(PrintStream wrapped) {
         super(wrapped);
@@ -52,7 +44,7 @@ public class SystemLogHandler extends PrintStream {
 
 
     /**
-     * Wrapped PrintStream.
+     * 系统输出流对象 System.out / System.err对象
      */
     private final PrintStream out;
 

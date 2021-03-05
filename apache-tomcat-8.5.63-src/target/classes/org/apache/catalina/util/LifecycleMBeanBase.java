@@ -39,23 +39,34 @@ public abstract class LifecycleMBeanBase extends LifecycleBase
         StringManager.getManager("org.apache.catalina.util");
 
 
-    /* Cache components of the MBean registration. */
+    /**
+     * 对象的领域名 比如Catalina
+     */
     private String domain = null;
+
+    /**
+     * 当前对象存储到MBeanServer仓库后 在MBeanServer中的索引名 比如StandardServer在MBeanServer中的索引名为Catalina:type=server
+     */
     private ObjectName oname = null;
+
+    /**
+     * 储存ManagedBean对象的仓库对象
+     */
     protected MBeanServer mserver = null;
 
     /**
-     * Sub-classes wishing to perform additional initialization should override
-     * this method, ensuring that super.initInternal() is the first call in the
-     * overriding method.
+     * 公共的初始化
+     * @throws LifecycleException
      */
     @Override
     protected void initInternal() throws LifecycleException {
         // If oname is not null then registration has already happened via
         // preRegister().
         if (oname == null) {
+            //获取存储bean对象的MBeanServer对象
             mserver = Registry.getRegistry(null, null).getMBeanServer();
 
+            //将当前对象注册到MBeanServer仓库  返回当前在MBeanServer仓库中的索引名
             oname = register(this, getObjectNameKeyProperties());
         }
     }
@@ -89,7 +100,7 @@ public abstract class LifecycleMBeanBase extends LifecycleBase
      */
     @Override
     public final String getDomain() {
-        if (domain == null) {
+        if (domain == null) {//领域对象
             domain = getDomainInternal();
         }
 
@@ -111,7 +122,8 @@ public abstract class LifecycleMBeanBase extends LifecycleBase
 
 
     /**
-     * Obtain the name under which this component has been registered with JMX.
+     * 获取当前对象注册到MBeanServer仓库后的索引名
+     * @return
      */
     @Override
     public final ObjectName getObjectName() {
@@ -120,41 +132,35 @@ public abstract class LifecycleMBeanBase extends LifecycleBase
 
 
     /**
-     * Allow sub-classes to specify the key properties component of the
-     * {@link ObjectName} that will be used to register this component.
-     *
-     * @return  The string representation of the key properties component of the
-     *          desired {@link ObjectName}
+     * 将当前包装为动态的MBean对象后 注册到MBeanServer仓库的索引名
+     * @return
      */
     protected abstract String getObjectNameKeyProperties();
 
 
     /**
-     * Utility method to enable sub-classes to easily register additional
-     * components that don't implement {@link JmxEnabled} with an MBean server.
-     * <br>
-     * Note: This method should only be used once {@link #initInternal()} has
-     * been called and before {@link #destroyInternal()} has been called.
-     *
-     * @param obj                       The object the register
-     * @param objectNameKeyProperties   The key properties component of the
-     *                                  object name to use to register the
-     *                                  object
-     *
-     * @return  The name used to register the object
+     * 将当前对象 注册到MBeanServer仓库 放回对象的名字
+     * @param obj 需要注册到MBeanServer仓库的对象
+     * @param objectNameKeyProperties 对象的名字属性值字符串
+     * @return 返回当前对象在MBeanServer仓库中的索引名
      */
     protected final ObjectName register(Object obj,
             String objectNameKeyProperties) {
 
-        // Construct an object name with the right domain
+        //获取领域名 比如Server/Service/Engine name属性值Catalina
         StringBuilder name = new StringBuilder(getDomain());
         name.append(':');
+        //Catalina:type=server
         name.append(objectNameKeyProperties);
 
         ObjectName on = null;
 
         try {
             on = new ObjectName(name.toString());
+
+            //找出当前对象比如StandardServer的ManagedMBean对象
+            //ManaagedMBean创建 一个动态的MBean对象 持有对StandardServer对象以及ManagedMBean对象的引用
+            //将动态的MBean对象注册到MBeanServer仓库
             Registry.getRegistry(null, null).registerComponent(obj, on, null);
         } catch (Exception e) {
             log.warn(sm.getString("lifecycleMBeanBase.registerFail", obj, name), e);
