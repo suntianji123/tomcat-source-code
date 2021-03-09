@@ -416,13 +416,15 @@ public class ContextConfig implements LifecycleListener {
 
 
     /**
-     * Create (if necessary) and return a Digester configured to process the
-     * context configuration descriptor for an application.
-     * @return the digester for context.xml files
+     * 创建解析器
+     * @return
      */
     protected Digester createContextDigester() {
+        //实例化一个解析器对象
         Digester digester = new Digester();
+        //设置不需要校验
         digester.setValidating(false);
+        //规则需要校验
         digester.setRulesValidation(true);
         Map<Class<?>, List<String>> fakeAttributes = new HashMap<>();
         List<String> objectAttrs = new ArrayList<>();
@@ -441,31 +443,35 @@ public class ContextConfig implements LifecycleListener {
     }
 
     /**
-     * Process the default configuration file, if it exists.
-     * @param digester The digester that will be used for XML parsing
+     * StandardContext配置方法
+     * @param digester 解析器对象
      */
     protected void contextConfig(Digester digester) {
 
         String defaultContextXml = null;
 
         // Open the default context.xml file, if it exists
-        if (context instanceof StandardContext) {
+        if (context instanceof StandardContext) {//StandardContext类型
             defaultContextXml = ((StandardContext)context).getDefaultContextXml();
         }
-        // set the default if we don't have any overrides
+        // 默认的context.xml文件位置 catalina-home/context.xml
         if (defaultContextXml == null) {
             defaultContextXml = Constants.DefaultContextXml;
         }
 
-        if (!context.getOverride()) {
+        if (!context.getOverride()) {//默认为false
+            //catalina-home/context.xml文件
             File defaultContextFile = new File(defaultContextXml);
-            if (!defaultContextFile.isAbsolute()) {
+            if (!defaultContextFile.isAbsolute()) {//不是绝对路径
+                //绝对路径 catalina-home/context.xml
                 defaultContextFile =
                         new File(context.getCatalinaBase(), defaultContextXml);
             }
             if (defaultContextFile.exists()) {
                 try {
+                    //获取默认的url
                     URL defaultContextUrl = defaultContextFile.toURI().toURL();
+                    //解析catalina-home/context.xml 将配置放入StandardContext StandardHost对象
                     processContextConfig(digester, defaultContextUrl);
                 } catch (MalformedURLException e) {
                     log.error(sm.getString(
@@ -473,8 +479,9 @@ public class ContextConfig implements LifecycleListener {
                 }
             }
 
+            //catalina-home/conf/Catalina/localhost/context.xml.default文件
             File hostContextFile = new File(getHostConfigBase(), Constants.HostContextXml);
-            if (hostContextFile.exists()) {
+            if (hostContextFile.exists()) {//文件不存在
                 try {
                     URL hostContextUrl = hostContextFile.toURI().toURL();
                     processContextConfig(digester, hostContextUrl);
@@ -484,7 +491,8 @@ public class ContextConfig implements LifecycleListener {
                 }
             }
         }
-        if (context.getConfigFile() != null) {
+        if (context.getConfigFile() != null) {//配置文件存在比如catalina-home/webapps/docs/META-INF/context.xml
+            //解析xml文件
             processContextConfig(digester, context.getConfigFile());
         }
 
@@ -492,9 +500,9 @@ public class ContextConfig implements LifecycleListener {
 
 
     /**
-     * Process a context.xml.
-     * @param digester The digester that will be used for XML parsing
-     * @param contextXml The URL to the context.xml configuration
+     * 处理配置
+     * @param digester xml文件解析器
+     * @param contextXml catalina-home/context.xml文件
      */
     protected void processContextConfig(Digester digester, URL contextXml) {
 
@@ -503,13 +511,21 @@ public class ContextConfig implements LifecycleListener {
                     + "] configuration file [" + contextXml + "]");
         }
 
+        //输入资源
         InputSource source = null;
+
+        //输入流
         InputStream stream = null;
 
         try {
+            //实例化输入资源
             source = new InputSource(contextXml.toString());
+
+            //打开连接
             URLConnection xmlConn = contextXml.openConnection();
+            //不使用缓存
             xmlConn.setUseCaches(false);
+            //获取输入流
             stream = xmlConn.getInputStream();
         } catch (Exception e) {
             log.error(sm.getString("contextConfig.contextMissing",
@@ -521,13 +537,21 @@ public class ContextConfig implements LifecycleListener {
         }
 
         try {
+            //资源设置字节流对象
             source.setByteStream(stream);
+            //设置类加载器
             digester.setClassLoader(this.getClass().getClassLoader());
+            //不适用上下文加载器
             digester.setUseContextClassLoader(false);
+            //将StandardHost对象放入解析栈
             digester.push(context.getParent());
+            //将StandardContext对象放入解析栈
             digester.push(context);
+            //xml文件解析错误处理器
             XmlErrorHandler errorHandler = new XmlErrorHandler();
+            //设置xml解析错误处理器
             digester.setErrorHandler(errorHandler);
+            //解析xml文件
             digester.parse(source);
             if (errorHandler.getWarnings().size() > 0 ||
                     errorHandler.getErrors().size() > 0) {
@@ -551,6 +575,7 @@ public class ContextConfig implements LifecycleListener {
             ok = false;
         } finally {
             try {
+                //关闭输入流
                 if (stream != null) {
                     stream.close();
                 }
@@ -726,12 +751,12 @@ public class ContextConfig implements LifecycleListener {
 
 
     /**
-     * Process a "init" event for this Context.
+     * StandardContext init之后执行
      */
     protected synchronized void init() {
-        // Called from StandardContext.init()
-
+        //创建xml文件解析器
         Digester contextDigester = createContextDigester();
+        //解析文件
         contextDigester.getParser();
 
         if (log.isDebugEnabled()) {

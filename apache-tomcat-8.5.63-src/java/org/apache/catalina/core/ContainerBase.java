@@ -683,6 +683,7 @@ public abstract class ContainerBase extends LifecycleMBeanBase
             if ((getState().isAvailable() ||
                     LifecycleState.STARTING_PREP.equals(getState())) &&
                     startChildren) {
+                //启动子容器  比如启动StandardContext对象
                 child.start();
             }
         } catch (LifecycleException e) {
@@ -695,9 +696,8 @@ public abstract class ContainerBase extends LifecycleMBeanBase
 
 
     /**
-     * Add a container event listener to this component.
-     *
-     * @param listener The listener to add
+     * 容器监听器
+     * @param listener 监听器对象
      */
     @Override
     public void addContainerListener(ContainerListener listener) {
@@ -889,12 +889,12 @@ public abstract class ContainerBase extends LifecycleMBeanBase
                     multiThrowable.getThrowable());
         }
 
-        // Start the Valves in our pipeline (including the basic), if any
+        //启动管道对象  启动管道中所有的阀门对象
         if (pipeline instanceof Lifecycle) {
             ((Lifecycle) pipeline).start();
         }
 
-
+        //设置状态启动中
         setState(LifecycleState.STARTING);
 
         // Start our thread
@@ -1093,6 +1093,10 @@ public abstract class ContainerBase extends LifecycleMBeanBase
     }
 
 
+    /**
+     * 获取catalina-home文件夹路径
+     * @return
+     */
     @Override
     public File getCatalinaBase() {
 
@@ -1204,14 +1208,13 @@ public abstract class ContainerBase extends LifecycleMBeanBase
     // -------------------- Background Thread --------------------
 
     /**
-     * Start the background thread that will periodically check for
-     * session timeouts.
+     * 启动线程
      */
     protected void threadStart() {
 
         if (thread != null)
             return;
-        if (backgroundProcessorDelay <= 0)
+        if (backgroundProcessorDelay <= 0)//小于0 直接返回
             return;
 
         threadDone = false;

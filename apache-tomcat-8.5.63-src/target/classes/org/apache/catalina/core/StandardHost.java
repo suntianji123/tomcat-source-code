@@ -48,6 +48,7 @@ import org.apache.tomcat.util.ExceptionUtils;
 
 /**
  * 标准的主机类
+ *管道中有两个阀门对象  AccessLogValve 、 ErrorReportValve
  */
 public class StandardHost extends ContainerBase implements Host {
 
@@ -107,8 +108,7 @@ public class StandardHost extends ContainerBase implements Host {
 
 
     /**
-     * The Java class name of the default context configuration class
-     * for deployed web applications.
+     * 配置ContextConfig的全类名
      */
     private String configClass =
         "org.apache.catalina.startup.ContextConfig";
@@ -123,7 +123,7 @@ public class StandardHost extends ContainerBase implements Host {
 
 
     /**
-     * The deploy on startup flag for this Host.
+     * 主机启动时的部署标志
      */
     private boolean deployOnStartup = true;
 
@@ -143,8 +143,7 @@ public class StandardHost extends ContainerBase implements Host {
 
 
     /**
-     * The Java class name of the default error reporter implementation class
-     * for deployed web applications.
+     * 报告错误的阀全类名
      */
     private String errorReportValveClass =
         "org.apache.catalina.valves.ErrorReportValve";
@@ -683,10 +682,10 @@ public class StandardHost extends ContainerBase implements Host {
 
 
     /**
-     * Add a child Container, only if the proposed child is an implementation
-     * of Context.
+     * 添加解析catalina-home/webapps/子目录/META-INF/context.xml返回的StandardContext对象
+     * 添加子容器对象
+     * @param child 将要被添加的StandardContext对象
      *
-     * @param child Child container to be added
      */
     @Override
     public void addChild(Container child) {
@@ -695,16 +694,20 @@ public class StandardHost extends ContainerBase implements Host {
             throw new IllegalArgumentException
                 (sm.getString("standardHost.notContext"));
 
+        //给子容器添加一个内存泄漏监听器
         child.addLifecycleListener(new MemoryLeakTrackingListener());
 
         // Avoid NPE for case where Context is defined in server.xml with only a
         // docBase
+        //获取Context对象
         Context context = (Context) child;
         if (context.getPath() == null) {
+            //实例化一个上下文名字对象
             ContextName cn = new ContextName(context.getDocBase(), true);
             context.setPath(cn.getPath());
         }
 
+        //添加子容器
         super.addChild(child);
 
     }
@@ -808,30 +811,30 @@ public class StandardHost extends ContainerBase implements Host {
 
 
     /**
-     * Start this component and implement the requirements
-     * of {@link org.apache.catalina.util.LifecycleBase#startInternal()}.
-     *
-     * @exception LifecycleException if this component detects a fatal error
-     *  that prevents this component from being used
+     * 子容器的启动方法体
+     * @throws LifecycleException
      */
     @Override
     protected synchronized void startInternal() throws LifecycleException {
 
-        // Set error report valve
+        // 获取报告错误的阀门对象的全类名
         String errorValve = getErrorReportValveClass();
-        if ((errorValve != null) && (!errorValve.equals(""))) {
+        if ((errorValve != null) && (!errorValve.equals(""))) {//设置了报告错误的阀门的全类名
             try {
+                //阀门管道列表中是否存在这个报告错误的阀门对象
                 boolean found = false;
                 Valve[] valves = getPipeline().getValves();
                 for (Valve valve : valves) {
-                    if (errorValve.equals(valve.getClass().getName())) {
+                    if (errorValve.equals(valve.getClass().getName())) {//如果存在
                         found = true;
                         break;
                     }
                 }
-                if(!found) {
+                if(!found) {//不存在
+                    //实例化报告错误的阀门对象
                     Valve valve =
                         (Valve) Class.forName(errorValve).getConstructor().newInstance();
+                    //获取管道对象 添加一个报告错误的阀门对象
                     getPipeline().addValve(valve);
                 }
             } catch (Throwable t) {

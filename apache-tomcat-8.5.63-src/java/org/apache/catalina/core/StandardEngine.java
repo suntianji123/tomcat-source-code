@@ -349,11 +349,17 @@ public class StandardEngine extends ContainerBase implements Engine {
     }
 
 
+    /**
+     * 获取catalina-base变量所指向的文件夹路径
+     * @return
+     */
     @Override
     public File getCatalinaBase() {
-        if (service != null) {
+        if (service != null) {//服务对象 不为null
+            //获取服务器对象
             Server s = service.getServer();
             if (s != null) {
+                //获取基本的文件夹路径 Catalina-base
                 File base = s.getCatalinaBase();
                 if (base != null) {
                     return base;

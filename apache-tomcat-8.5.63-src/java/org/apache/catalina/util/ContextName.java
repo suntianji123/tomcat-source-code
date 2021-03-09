@@ -19,17 +19,27 @@ package org.apache.catalina.util;
 import java.util.Locale;
 
 /**
- * Utility class to manage context names so there is one place where the
- * conversions between baseName, path and version take place.
+ * 上下文名字类
  */
 public final class ContextName {
     public static final String ROOT_NAME = "ROOT";
     private static final String VERSION_MARKER = "##";
     private static final char FWD_SLASH_REPLACEMENT = '#';
 
+    /**
+     * 基本文件名 比如 docs
+     */
     private final String baseName;
+
+    /**
+     * 路径 比如 /docs
+     */
     private final String path;
     private final String version;
+
+    /**
+     * 名字 比如 /docs
+     */
     private final String name;
 
 

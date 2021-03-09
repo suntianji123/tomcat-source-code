@@ -25,11 +25,21 @@ import org.apache.catalina.WebResourceSet;
 import org.apache.catalina.util.LifecycleBase;
 import org.apache.tomcat.util.res.StringManager;
 
+/**
+ * 抽象的资源集合类
+ */
 public abstract class AbstractResourceSet extends LifecycleBase
         implements WebResourceSet {
 
+    /**
+     * webResourceRoot对象 standardRoot对象
+     */
     private WebResourceRoot root;
     private String base;
+
+    /**
+     * 本地路径
+     */
     private String internalPath = "";
     private String webAppMount;
     private boolean classLoaderOnly;

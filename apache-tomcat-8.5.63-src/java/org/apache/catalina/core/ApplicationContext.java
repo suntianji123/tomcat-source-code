@@ -80,12 +80,7 @@ import org.apache.tomcat.util.res.StringManager;
 
 
 /**
- * Standard implementation of <code>ServletContext</code> that represents
- * a web application's execution environment.  An instance of this class is
- * associated with each instance of <code>StandardContext</code>.
- *
- * @author Craig R. McClanahan
- * @author Remy Maucherat
+ * 应用上下文类
  */
 public class ApplicationContext implements ServletContext {
 
@@ -110,18 +105,19 @@ public class ApplicationContext implements ServletContext {
 
 
     /**
-     * Construct a new instance of this class, associated with the specified
-     * Context instance.
-     *
-     * @param context The associated Context instance
+     * 实例化一个应用上下文对象
+     * @param context StandardContext对象
      */
     public ApplicationContext(StandardContext context) {
         super();
+        //设置StandardContext
         this.context = context;
+        //设置service
         this.service = ((Engine) context.getParent().getParent()).getService();
+        //sessionCookieConfig
         this.sessionCookieConfig = new ApplicationSessionCookieConfig(context);
 
-        // Populate session tracking modes
+        // 填充会话跟踪模式
         populateSessionTrackingModes();
     }
 
@@ -130,25 +126,25 @@ public class ApplicationContext implements ServletContext {
 
 
     /**
-     * The context attributes for this context.
+     * 属性值集合   比如  javax.servlet.context.tempdir | catalina-home\work\Catalina\localhost\docs
      */
     protected Map<String,Object> attributes = new ConcurrentHashMap<>();
 
 
     /**
-     * List of read only attributes for this context.
+     * 只读的属性名map
      */
     private final Map<String,String> readOnlyAttributes = new ConcurrentHashMap<>();
 
 
     /**
-     * The Context instance with which we are associated.
+     * StandardContext对象
      */
     private final StandardContext context;
 
 
     /**
-     * The Service instance with which we are associated.
+     * StandardService对象
      */
     private final Service service;
 
@@ -198,7 +194,15 @@ public class ApplicationContext implements ServletContext {
      * Session tracking modes
      */
     private Set<SessionTrackingMode> sessionTrackingModes = null;
+
+    /**
+     * 默认的Session会话追踪模式 包括URL、Cookie
+     */
     private Set<SessionTrackingMode> defaultSessionTrackingModes = null;
+
+    /**
+     * 支持的session会话追踪模式 包括URL、Cookie
+     */
     private Set<SessionTrackingMode> supportedSessionTrackingModes = null;
 
     /**
@@ -694,29 +698,37 @@ public class ApplicationContext implements ServletContext {
     }
 
 
+    /**
+     * 设置应用上下文的属性值
+     * @param name 属性名  比如 javax.servlet.context.tempdir
+     *            a <code>String</code> specifying the name of the attribute
+     * @param value 属性值  比如  catalina-home\work\Catalina\localhost\docs
+     */
     @Override
     public void setAttribute(String name, Object value) {
         // Name cannot be null
-        if (name == null) {
+        if (name == null) {//属性名不能为空
             throw new NullPointerException(sm.getString("applicationContext.setAttribute.namenull"));
         }
 
         // Null value is the same as removeAttribute()
-        if (value == null) {
+        if (value == null) {//value为null 表示将要移除属性值
             removeAttribute(name);
             return;
         }
 
         // Add or replace the specified attribute
         // Check for read only attribute
-        if (readOnlyAttributes.containsKey(name)) {
+        if (readOnlyAttributes.containsKey(name)) {//只读的属性列表中包含这个属性 返回
             return;
         }
 
+        //将新的属性值添加到属性列表  返回老的属性值
         Object oldValue = attributes.put(name, value);
+        //是否替换了老的属性值
         boolean replaced = oldValue != null;
 
-        // Notify interested application event listeners
+        // 应用监听器列表
         Object listeners[] = context.getApplicationEventListeners();
         if ((listeners == null) || (listeners.length == 0)) {
             return;
@@ -993,20 +1005,25 @@ public class ApplicationContext implements ServletContext {
     }
 
 
+    /**
+     * 填充会话跟踪模式
+     */
     private void populateSessionTrackingModes() {
-        // URL re-writing is always enabled by default
+        //设置默认的会话追踪模式
         defaultSessionTrackingModes = EnumSet.of(SessionTrackingMode.URL);
+        //支持的会话追踪模式
         supportedSessionTrackingModes = EnumSet.of(SessionTrackingMode.URL);
 
-        if (context.getCookies()) {
+        if (context.getCookies()) {//允许设置cookie
+            //添加默认会话追踪模式支持cookie
             defaultSessionTrackingModes.add(SessionTrackingMode.COOKIE);
+            //添加支持的会员追踪模式支持cookie
             supportedSessionTrackingModes.add(SessionTrackingMode.COOKIE);
         }
 
-        // SSL not enabled by default as it can only used on its own
-        // Context > Host > Engine > Service
+        //查找sevice中所有的连接器对象
         Connector[] connectors = service.findConnectors();
-        // Need at least one SSL enabled connector to use the SSL session ID.
+       //遍历所有的连接器
         for (Connector connector : connectors) {
             if (Boolean.TRUE.equals(connector.getProperty("SSLEnabled"))) {
                 supportedSessionTrackingModes.add(SessionTrackingMode.SSL);
@@ -1373,7 +1390,8 @@ public class ApplicationContext implements ServletContext {
 
 
     /**
-     * Set an attribute as read only.
+     * 设置只读的属性列表
+     * @param name 属性名
      */
     void setAttributeReadOnly(String name) {
 

@@ -34,7 +34,7 @@ import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 
 /**
- * Represents a {@link org.apache.catalina.WebResourceSet} based on a directory.
+ * 文件夹资源集合类
  */
 public class DirResourceSet extends AbstractFileResourceSet {
 
@@ -48,32 +48,26 @@ public class DirResourceSet extends AbstractFileResourceSet {
     }
 
     /**
-     * Creates a new {@link org.apache.catalina.WebResourceSet} based on a
-     * directory.
-     *
-     * @param root          The {@link WebResourceRoot} this new
-     *                          {@link org.apache.catalina.WebResourceSet} will
-     *                          be added to.
-     * @param webAppMount   The path within the web application at which this
-     *                          {@link org.apache.catalina.WebResourceSet} will
-     *                          be mounted. For example, to add a directory of
-     *                          JARs to a web application, the directory would
-     *                          be mounted at "/WEB-INF/lib/"
-     * @param base          The absolute path to the directory on the file
-     *                          system from which the resources will be served.
-     * @param internalPath  The path within this new {@link
-     *                          org.apache.catalina.WebResourceSet} where
-     *                          resources will be served from.
+     * 实例化一个文件夹资源结合对象
+     * @param root StandardRoot对象
+     * @param webAppMount /
+     * @param base catalina-home/webapps/docs
+     * @param internalPath /
      */
     public DirResourceSet(WebResourceRoot root, String webAppMount, String base,
             String internalPath) {
+        //设置本地路径为 “”
         super(internalPath);
+        //设置root
         setRoot(root);
+        //设置路径 ""
         setWebAppMount(webAppMount);
+        //设置基本路径 catalina-home/webapps/docs
         setBase(base);
 
         if (root.getContext().getAddWebinfClassesResources()) {
             File f = new File(base, internalPath);
+            //资源文件 catalina-home/webapps/docs/WEB-INF/classes/META-INF/resources
             f = new File(f, "/WEB-INF/classes/META-INF/resources");
 
             if (f.isDirectory()) {

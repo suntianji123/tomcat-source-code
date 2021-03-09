@@ -50,22 +50,16 @@ import org.apache.tomcat.util.http.RequestUtil;
 import org.apache.tomcat.util.res.StringManager;
 
 /**
- * <p>
- * Provides the resources implementation for a web application. The
- * {@link org.apache.catalina.Lifecycle} of this class should be aligned with
- * that of the associated {@link Context}.
- * </p><p>
- * This implementation assumes that the base attribute supplied to {@link
- * StandardRoot#createWebResourceSet(
- * org.apache.catalina.WebResourceRoot.ResourceSetType, String, String, String,
- * String)} represents the absolute path to a file.
- * </p>
+ * 标准的WebResourceRoot类
  */
 public class StandardRoot extends LifecycleMBeanBase implements WebResourceRoot {
 
     private static final Log log = LogFactory.getLog(StandardRoot.class);
     protected static final StringManager sm = StringManager.getManager(StandardRoot.class);
 
+    /**
+     * StandardContext对象
+     */
     private Context context;
     private boolean allowLinking = false;
     private final List<WebResourceSet> preResources = new ArrayList<>();
@@ -76,13 +70,19 @@ public class StandardRoot extends LifecycleMBeanBase implements WebResourceRoot 
 
     private final Cache cache = new Cache(this);
     private boolean cachingAllowed = true;
+
+    /**
+     * 当前WebResourceRoot对象 注册到MBeanServer仓库 的索引名   type=WebResourceRoot,name=cache
+     */
     private ObjectName cacheJmxName = null;
 
     private boolean trackLockedFiles = false;
     private final Set<TrackedWebResource> trackedResources =
             Collections.newSetFromMap(new ConcurrentHashMap<TrackedWebResource,Boolean>());
 
-    // Constructs to make iteration over all WebResourceSets simpler
+    /**
+     * 主要字眼Set
+     */
     private final List<WebResourceSet> mainResources = new ArrayList<>();
     private final List<List<WebResourceSet>> allResources =
             new ArrayList<>();
@@ -105,6 +105,10 @@ public class StandardRoot extends LifecycleMBeanBase implements WebResourceRoot 
         // NO-OP
     }
 
+    /**
+     * 实例化一个标准的WebResourceRoot对象
+     * @param context StandardContext对象
+     */
     public StandardRoot(Context context) {
         this.context = context;
     }
@@ -672,38 +676,54 @@ public class StandardRoot extends LifecycleMBeanBase implements WebResourceRoot 
 
     // --------------------------------------------------------------- Lifecycle
 
+    /**
+     * 初始化标准的WebResourceRoot对象
+     * @throws LifecycleException
+     */
     @Override
     protected void initInternal() throws LifecycleException {
+        //将当前对象 包装为动态的MBean 存储到MBeanServer仓库
         super.initInternal();
 
+        //将当前StandardRoot对象 注册到MBeanServer仓库
         cacheJmxName = register(cache, getObjectNameKeyProperties() + ",name=Cache");
 
         registerURLStreamHandlerFactory();
 
-        if (context == null) {
+        if (context == null) {//StandardContext对象为null
             throw new IllegalStateException(
                     sm.getString("standardRoot.noContext"));
         }
 
-        for (List<WebResourceSet> list : allResources) {
+        for (List<WebResourceSet> list : allResources) {//初始化所有的资源
             for (WebResourceSet webResourceSet : list) {
                 webResourceSet.init();
             }
         }
     }
 
+    /**
+     * 注册URL资源处理器工厂
+     */
     protected void registerURLStreamHandlerFactory() {
         // Ensure support for jar:war:file:/ URLs will be available (required
         // for resource JARs in packed WAR files).
         TomcatURLStreamHandlerFactory.register();
     }
 
+    /**
+     * 启动
+     * @throws LifecycleException
+     */
     @Override
     protected void startInternal() throws LifecycleException {
+        //清理主要资源
         mainResources.clear();
 
+        //设置主要资源集合
         main = createMainResourceSet();
 
+        //添加到主要资源集合
         mainResources.add(main);
 
         for (List<WebResourceSet> list : allResources) {
@@ -728,18 +748,25 @@ public class StandardRoot extends LifecycleMBeanBase implements WebResourceRoot 
         setState(LifecycleState.STARTING);
     }
 
+    /**
+     * 创建主要资源集合
+     * @return
+     */
     protected WebResourceSet createMainResourceSet() {
+        //获取 docs文件
         String docBase = context.getDocBase();
 
         WebResourceSet mainResourceSet;
         if (docBase == null) {
             mainResourceSet = new EmptyResourceSet(this);
         } else {
+            //catalina-home/webapps/docs
             File f = new File(docBase);
             if (!f.isAbsolute()) {
                 f = new File(((Host)context.getParent()).getAppBaseFile(), f.getPath());
             }
-            if (f.isDirectory()) {
+            if (f.isDirectory()) {//是文件夹
+
                 mainResourceSet = new DirResourceSet(this, "/", f.getAbsolutePath(), "/");
             } else if(f.isFile() && docBase.endsWith(".war")) {
                 mainResourceSet = new WarResourceSet(this, "/", f.getAbsolutePath());

@@ -38,6 +38,10 @@ public abstract class AbstractFileResourceSet extends AbstractResourceSet {
     private String canonicalBase;
     private boolean readOnly = false;
 
+    /**
+     * 实例化一个抽象的资源结合对象
+     * @param internalPath 本地路径
+     */
     protected AbstractFileResourceSet(String internalPath) {
         setInternalPath(internalPath);
     }

@@ -52,16 +52,19 @@ public final class Mapper {
 
 
     /**
-     * Array containing the virtual hosts definitions.
+     *映射主机数组 MappedHost[name:localhost,Host:StandardHost]
      */
-    // Package private to facilitate testing
     volatile MappedHost[] hosts = new MappedHost[0];
 
 
     /**
-     * Default host name.
+     * 默认的主机名  localhost
      */
     private volatile String defaultHostName = null;
+
+    /**
+     * 默认的主机地址对象
+     */
     private volatile MappedHost defaultHost = null;
 
 
@@ -76,11 +79,11 @@ public final class Mapper {
     // --------------------------------------------------------- Public Methods
 
     /**
-     * Set default host.
-     *
-     * @param defaultHostName Default host name
+     * 设置默认的主机地址
+     * @param defaultHostName 默认的主机地址
      */
     public synchronized void setDefaultHostName(String defaultHostName) {
+        //设置默认的主机地址
         this.defaultHostName = renameWildcardHost(defaultHostName);
         if (this.defaultHostName == null) {
             defaultHost = null;
@@ -91,20 +94,26 @@ public final class Mapper {
 
 
     /**
-     * Add a new host to the mapper.
+     * 添加一个主机映射对象  MappedHost[name:localhost,Host:StandardHost]
      *
-     * @param name Virtual host name
-     * @param aliases Alias names for the virtual host
-     * @param host Host object
+     * @param name 主机名 localhost
+     * @param aliases 别名
+     * @param host 主机对象
      */
     public synchronized void addHost(String name, String[] aliases,
                                      Host host) {
+        //主机名 localhost
         name = renameWildcardHost(name);
+
+        //新的映射主机数组
         MappedHost[] newHosts = new MappedHost[hosts.length + 1];
+        //实例化一个映射的主机对象
         MappedHost newHost = new MappedHost(name, host);
-        if (insertMap(hosts, newHosts, newHost)) {
+        if (insertMap(hosts, newHosts, newHost)) {//将老数组中的复制到新的数组  并将新的host添加到新的数组
+            //设置hosts对引用新的hosts数组
             hosts = newHosts;
-            if (newHost.name.equals(defaultHostName)) {
+            if (newHost.name.equals(defaultHostName)) {//新的host的名字为localhost
+                //设置默认的host为新的host
                 defaultHost = newHost;
             }
             if (log.isDebugEnabled()) {
@@ -1297,25 +1306,28 @@ public final class Mapper {
 
 
     /**
-     * Find a map element given its name in a sorted array of map elements.
-     * This will return the index for the closest inferior or equal item in the
-     * given array.
-     * @see #exactFind(MapElement[], String)
+     * 查找某个映射名在映射数组中的下标
+     * @param map 映射map
+     * @param name 映射名 比如 localhost
+     * @param <T> 映射类型 比如Host
+     * @return
      */
     private static final <T> int find(MapElement<T>[] map, String name) {
 
         int a = 0;
+
+        //数组最后一个元素的下标
         int b = map.length - 1;
 
-        // Special cases: -1 and 0
+        // 数组中 没有元素  找不到映射名的位置 直接返回-1
         if (b == -1) {
             return -1;
         }
 
-        if (name.compareTo(map[0].name) < 0) {
+        if (name.compareTo(map[0].name) < 0) {//比数组第一个元素的名字要小 直接返回
             return -1;
         }
-        if (b == 0) {
+        if (b == 0) {//返回第0个元素
             return 0;
         }
 
@@ -1511,16 +1523,24 @@ public final class Mapper {
 
 
     /**
-     * Insert into the right place in a sorted MapElement array, and prevent
-     * duplicates.
+     * 将元素插入到新的数组
+     * @param oldMap 老的映射map
+     * @param newMap 新的映射map
+     * @param newElement 将要被添加的元素
+     * @param <T>
+     * @return
      */
     private static final <T> boolean insertMap
         (MapElement<T>[] oldMap, MapElement<T>[] newMap, MapElement<T> newElement) {
+        //找到映射数组中是否有这个映射名
         int pos = find(oldMap, newElement.name);
-        if ((pos != -1) && (newElement.name.equals(oldMap[pos].name))) {
+        if ((pos != -1) && (newElement.name.equals(oldMap[pos].name))) {//映射名存在 不能插入到映射数组
             return false;
         }
+
+        //映射名不存在 将老数组中的元素复制到新数组
         System.arraycopy(oldMap, 0, newMap, 0, pos + 1);
+        //设置新数组的最后一个元素为新元素
         newMap[pos + 1] = newElement;
         System.arraycopy
             (oldMap, pos + 1, newMap, pos + 2, oldMap.length - pos - 1);
@@ -1544,12 +1564,10 @@ public final class Mapper {
     }
 
 
-    /*
-     * To simplify the mapping process, wild card hosts take the form
-     * ".apache.org" rather than "*.apache.org" internally. However, for ease
-     * of use the external form remains "*.apache.org". Any host name passed
-     * into this class needs to be passed through this method to rename and
-     * wild card host names from the external to internal form.
+    /**
+     * 返回默认的主机地址
+     * @param hostName 主机地址 localhost
+     * @return
      */
     private static String renameWildcardHost(String hostName) {
         if (hostName != null && hostName.startsWith("*.")) {
@@ -1563,11 +1581,27 @@ public final class Mapper {
     // ------------------------------------------------- MapElement Inner Class
 
 
+    /**
+     * 映射类
+     * @param <T> 对象类型 比如StandardHost类型
+     */
     protected abstract static class MapElement<T> {
 
+        /**
+         * 对象名
+         */
         public final String name;
+
+        /**
+         * 原始对象
+         */
         public final T object;
 
+        /**
+         * 实例化一个映射对象
+         * @param name 名字
+         * @param object 对象
+         */
         public MapElement(String name, T object) {
             this.name = name;
             this.object = object;
@@ -1578,6 +1612,9 @@ public final class Mapper {
     // ------------------------------------------------------- Host Inner Class
 
 
+    /**
+     * 映射主机类
+     */
     protected static final class MappedHost extends MapElement<Host> {
 
         public volatile ContextList contextList;
@@ -1595,10 +1632,9 @@ public final class Mapper {
         private final List<MappedHost> aliases;
 
         /**
-         * Constructor used for the primary Host
-         *
-         * @param name The name of the virtual host
-         * @param host The host
+         * 实例化一个映射主机对象
+         * @param name 主机名
+         * @param host 主机地址对象
          */
         public MappedHost(String name, Host host) {
             super(name, host);

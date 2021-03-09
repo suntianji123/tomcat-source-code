@@ -118,22 +118,19 @@ public class HostConfig implements LifecycleListener {
 
 
     /**
-     * Should XML files be copied to
-     * $CATALINA_BASE/conf/&lt;engine&gt;/&lt;host&gt; by default when
-     * a web application is deployed?
+     * 部署catalina-home/webapps/子目录时候  是否将 子目录/META-INF/content.xml拷贝一份到catalina-home/conf/Catalina/localhost/子目录.xml
      */
     protected boolean copyXML = false;
 
 
     /**
-     * Should we unpack WAR files when auto-deploying applications in the
-     * <code>appBase</code> directory?
+     * 是否不解压wars文件
      */
     protected boolean unpackWARs = false;
 
 
     /**
-     * Map of deployed applications.
+     * 部署列表  比如 /docs | 部署的app
      */
     protected final Map<String, DeployedApplication> deployed =
             new ConcurrentHashMap<>();
@@ -147,9 +144,13 @@ public class HostConfig implements LifecycleListener {
 
 
     /**
-     * The <code>Digester</code> instance used to parse context descriptors.
+     * catalina-home/webapps/子目录/META-INF/context,xml解析器
      */
     protected Digester digester = createDigester(contextClass);
+
+    /**
+     * 访问digester xml文件解析器的锁对象
+     */
     private final Object digesterLock = new Object();
 
     /**
@@ -204,7 +205,12 @@ public class HostConfig implements LifecycleListener {
         this.deployXML = deployXML;
     }
 
-
+    /**
+     * 是否部署xml文件
+     * @param docBase 文件基本路径
+     * @param cn 文件名上下文对象
+     * @return
+     */
     private boolean isDeployThisXML(File docBase, ContextName cn) {
         boolean deployThisXML = isDeployXML();
         if (Globals.IS_SECURITY_ENABLED && !deployThisXML) {
@@ -274,15 +280,15 @@ public class HostConfig implements LifecycleListener {
 
 
     /**
-     * Process the START event for an associated Host.
-     *
-     * @param event The lifecycle event that has occurred
+     * StandardHost启动时执行
+     * @param event 生命周期事件对象
      */
     @Override
     public void lifecycleEvent(LifecycleEvent event) {
 
         // Identify the host we are associated with
         try {
+            //获取StandardHost对象
             host = (Host) event.getLifecycle();
             if (host instanceof StandardHost) {
                 setCopyXML(((StandardHost) host).isCopyXML());
@@ -300,7 +306,7 @@ public class HostConfig implements LifecycleListener {
             check();
         } else if (event.getType().equals(Lifecycle.BEFORE_START_EVENT)) {
             beforeStart();
-        } else if (event.getType().equals(Lifecycle.START_EVENT)) {
+        } else if (event.getType().equals(Lifecycle.START_EVENT)) {//启动
             start();
         } else if (event.getType().equals(Lifecycle.STOP_EVENT)) {
             stop();
@@ -369,18 +375,21 @@ public class HostConfig implements LifecycleListener {
 
 
     /**
-     * Create the digester which will be used to parse context config files.
-     * @param contextClassName The class which will be used to create the
-     *  context instance
-     * @return the digester
+     * catalina-home/webapps/子目录/META-INF/context.xml解析器
+     * @param contextClassName StandardContext的全类名
+     * @return
      */
     protected static Digester createDigester(String contextClassName) {
+        //实例化一个解析器对象
         Digester digester = new Digester();
+        //设置不校验
         digester.setValidating(false);
         // Add object creation rule
+        //创建StandardContext对象
         digester.addObjectCreate("Context", contextClassName, "className");
         // Set the properties on that object (it doesn't matter if extra
         // properties are set)
+        //设置属性
         digester.addSetProperties("Context");
         return digester;
     }
@@ -408,31 +417,32 @@ public class HostConfig implements LifecycleListener {
 
 
     /**
-     * Deploy applications for any directories or WAR files that are found
-     * in our "application root" directory.
+     * 部署主机
      */
     protected void deployApps() {
+        //获取catalina-home/webapps文件夹
         File appBase = host.getAppBaseFile();
+        //获取catalina-home/conf/Catalina/localhost
         File configBase = host.getConfigBaseFile();
+
+        //使用匹配的正则 过滤catalina-home/webapps下的文件夹
         String[] filteredAppPaths = filterAppPaths(appBase.list());
-        // Deploy XML descriptors from configBase
+        //部署描述器
         deployDescriptors(configBase, configBase.list());
-        // Deploy WARs
+        //部署wars文件
         deployWARs(appBase, filteredAppPaths);
-        // Deploy expanded folders
+        // 部署扩展文件
         deployDirectories(appBase, filteredAppPaths);
     }
 
 
     /**
-     * Filter the list of application file paths to remove those that match
-     * the regular expression defined by {@link Host#getDeployIgnore()}.
-     *
-     * @param unfilteredAppPaths    The list of application paths to filter
-     *
-     * @return  The filtered list of application paths
+     * 过滤app路径
+     * @param unfilteredAppPaths
+     * @return
      */
     protected String[] filterAppPaths(String[] unfilteredAppPaths) {
+        //获取匹配器
         Pattern filter = host.getDeployIgnorePattern();
         if (filter == null || unfilteredAppPaths == null) {
             return unfilteredAppPaths;
@@ -495,13 +505,13 @@ public class HostConfig implements LifecycleListener {
 
 
     /**
-     * Deploy XML context descriptors.
-     * @param configBase The config base
-     * @param files The XML descriptors which should be deployed
-     */
+     * 部署描述其
+     * @param configBase 配置文件基本路径 catalina-home/conf/Catalina/localhost
+     * @param files configBase下的所有文件
+    */
     protected void deployDescriptors(File configBase, String[] files) {
 
-        if (files == null) {
+        if (files == null) {//文件不存在
             return;
         }
 
@@ -533,13 +543,14 @@ public class HostConfig implements LifecycleListener {
 
 
     /**
-     * Deploy specified context descriptor.
-     * @param cn The context name
-     * @param contextXml The descriptor
+     * 部署文件
+     * @param cn 文件名上下文对象
+     * @param contextXml 文件对象
      */
     @SuppressWarnings("null") // context is not null
     protected void deployDescriptor(ContextName cn, File contextXml) {
 
+        //实例化一个部署应用对象
         DeployedApplication deployedApp = new DeployedApplication(cn.getName(), true);
 
         long startTime = 0;
@@ -549,12 +560,15 @@ public class HostConfig implements LifecycleListener {
            log.info(sm.getString("hostConfig.deployDescriptor", contextXml.getAbsolutePath()));
         }
 
+        //上下文对象
         Context context = null;
+        //是否为.war文件
         boolean isExternalWar = false;
+        //是否为扩展
         boolean isExternal = false;
         File expandedDocBase = null;
 
-        try (FileInputStream fis = new FileInputStream(contextXml)) {
+        try (FileInputStream fis = new FileInputStream(contextXml)) {//获取文件输入流
             synchronized (digesterLock) {
                 try {
                     context = (Context) digester.parse(fis);
@@ -675,29 +689,31 @@ public class HostConfig implements LifecycleListener {
 
 
     /**
-     * Deploy WAR files.
-     * @param appBase The base path for applications
-     * @param files The WARs to deploy
+     * 部署wars文件
+     * @param appBase catalina-home/webapps
+     * @param files  catalina-home/webapps/docs catalina-home/webapps/examples catalina-home/webapps/host-manager  ...
      */
     protected void deployWARs(File appBase, String[] files) {
 
-        if (files == null) {
+        if (files == null) {//子文件夹不存在 直接返回
             return;
         }
 
+        //获取启动或者停止执行器
         ExecutorService es = host.getStartStopExecutor();
+        //异步操作列表
         List<Future<?>> results = new ArrayList<>();
 
-        for (String file : files) {
-            if (file.equalsIgnoreCase("META-INF")) {
+        for (String file : files) {//遍历所有的子文件夹
+            if (file.equalsIgnoreCase("META-INF")) {//过滤到META-INF文件
                 continue;
             }
-            if (file.equalsIgnoreCase("WEB-INF")) {
+            if (file.equalsIgnoreCase("WEB-INF")) {//过滤WEB-INF文件
                 continue;
             }
 
             File war = new File(appBase, file);
-            if (file.toLowerCase(Locale.ENGLISH).endsWith(".war") && war.isFile() && !invalidWars.contains(file)) {
+            if (file.toLowerCase(Locale.ENGLISH).endsWith(".war") && war.isFile() && !invalidWars.contains(file)) {//判断为.war文件
                 ContextName cn = new ContextName(file, true);
 
                 if (isServiced(cn.getName())) {
@@ -969,20 +985,21 @@ public class HostConfig implements LifecycleListener {
 
 
     /**
-     * Deploy exploded webapps.
-     * @param appBase The base path for applications
-     * @param files The exploded webapps that should be deployed
+     * 部署扩展文件
+     * @param appBase catalina-home/webapps文件夹
+     * @param files catalina-home/webapps下的所有子文件
      */
     protected void deployDirectories(File appBase, String[] files) {
 
-        if (files == null) {
+        if (files == null) {//不存在子文件
             return;
         }
 
+        //虎丘执行器
         ExecutorService es = host.getStartStopExecutor();
         List<Future<?>> results = new ArrayList<>();
 
-        for (String file : files) {
+        for (String file : files) {//遍历所有的子文件
             if (file.equalsIgnoreCase("META-INF")) {
                 continue;
             }
@@ -990,8 +1007,11 @@ public class HostConfig implements LifecycleListener {
                 continue;
             }
 
+            //实例化一个目录文件
             File dir = new File(appBase, file);
-            if (dir.isDirectory()) {
+            if (dir.isDirectory()) {//文件夹
+
+                //cn [basename:docs,path:/docs,name:/docs]
                 ContextName cn = new ContextName(file, false);
 
                 if (isServiced(cn.getName()) || deploymentExists(cn.getName())) {
@@ -1013,9 +1033,9 @@ public class HostConfig implements LifecycleListener {
 
 
     /**
-     * Deploy exploded webapp.
-     * @param cn The context name
-     * @param dir The path to the root folder of the weapp
+     * 部署catalina-home/webapps下的子文件夹
+     * @param cn 文件名上下文对象
+     * @param dir 文件夹对象
      */
     protected void deployDirectory(ContextName cn, File dir) {
 
@@ -1026,23 +1046,33 @@ public class HostConfig implements LifecycleListener {
             log.info(sm.getString("hostConfig.deployDir", dir.getAbsolutePath()));
         }
 
+        //上下文对象
         Context context = null;
+        //xml文件  比如 catalina-home/webapps/docs/META-INF/context.xml
         File xml = new File(dir, Constants.ApplicationContextXml);
+
+        //比如 catalina-home/conf/Catalina/localhost/docs.xml
         File xmlCopy = new File(host.getConfigBaseFile(), cn.getBaseName() + ".xml");
 
         DeployedApplication deployedApp;
+
+        //默认不拷贝xml文件
         boolean copyThisXml = isCopyXML();
+
+        //部署这个xml文件
         boolean deployThisXML = isDeployThisXML(dir, cn);
 
         try {
-            if (deployThisXML && xml.exists()) {
-                synchronized (digesterLock) {
+            if (deployThisXML && xml.exists()) {//需要部署xml文件 并且xml存在
+                synchronized (digesterLock) {//打开访问digester xml文件解析器的锁
                     try {
+                        //解析xml文件 返回StandardContext对象
                         context = (Context) digester.parse(xml);
                     } catch (Exception e) {
                         log.error(sm.getString("hostConfig.deployDescriptor.error", xml), e);
                         context = new FailedContext();
                     } finally {
+                        //重置解析器
                         digester.reset();
                         if (context == null) {
                             context = new FailedContext();
@@ -1052,13 +1082,15 @@ public class HostConfig implements LifecycleListener {
 
                 if (copyThisXml == false && context instanceof StandardContext) {
                     // Host is using default value. Context may override it.
+                    //是否复制这个xml到catalina-home/conf/Catalina/localhost/子目录.xml文件
                     copyThisXml = ((StandardContext) context).getCopyXML();
                 }
 
-                if (copyThisXml) {
+                if (copyThisXml) {//复制文件
                     Files.copy(xml.toPath(), xmlCopy.toPath());
                     context.setConfigFile(xmlCopy.toURI().toURL());
                 } else {
+                    //设置配置文件
                     context.setConfigFile(xml.toURI().toURL());
                 }
             } else if (!deployThisXML && xml.exists()) {
@@ -1070,32 +1102,41 @@ public class HostConfig implements LifecycleListener {
                 context = (Context) Class.forName(contextClass).getConstructor().newInstance();
             }
 
+            //加载class
             Class<?> clazz = Class.forName(host.getConfigClass());
+            //实例化一个listener
             LifecycleListener listener = (LifecycleListener) clazz.getConstructor().newInstance();
+            //添加listener
             context.addLifecycleListener(listener);
 
+            //设置名字 比如/docs
             context.setName(cn.getName());
+            //设置路径 比如/docs
             context.setPath(cn.getPath());
+            //设置版本号
             context.setWebappVersion(cn.getVersion());
+            //设置 基本名 docs
             context.setDocBase(cn.getBaseName());
             host.addChild(context);
         } catch (Throwable t) {
             ExceptionUtils.handleThrowable(t);
             log.error(sm.getString("hostConfig.deployDir.error", dir.getAbsolutePath()), t);
         } finally {
+            //实例化一个部署app
             deployedApp = new DeployedApplication(cn.getName(), xml.exists() && deployThisXML && copyThisXml);
 
-            // Fake re-deploy resource to detect if a WAR is added at a later
-            // point
+            //将 catalina-home/webapps/docs.war方法放入重新部署列表 value值为0
             deployedApp.redeployResources.put(dir.getAbsolutePath() + ".war", Long.valueOf(0));
+            //将 catalina-home/webapps/docs.war方法放入重新部署列表 value值为docs文件夹最后一次修改时间
             deployedApp.redeployResources.put(dir.getAbsolutePath(), Long.valueOf(dir.lastModified()));
-            if (deployThisXML && xml.exists()) {
-                if (copyThisXml) {
+            if (deployThisXML && xml.exists()) {//部署这个xml文件 并且xml存在
+                if (copyThisXml) {//复制xml文件
                     deployedApp.redeployResources.put(xmlCopy.getAbsolutePath(), Long.valueOf(xmlCopy.lastModified()));
                 } else {
+                    //将 catalina-home/webapps/docs/META-INF/context.xml放入重新部署列表  value为xml文件最后一次修改时间
                     deployedApp.redeployResources.put(xml.getAbsolutePath(), Long.valueOf(xml.lastModified()));
                     // Fake re-deploy resource to detect if a context.xml file is
-                    // added at a later point
+                    // 将catalina-home/conf/Catalina/localhost/docs.xml放入重新部署列表  value为xml文件最后一次修改时间
                     deployedApp.redeployResources.put(xmlCopy.getAbsolutePath(), Long.valueOf(0));
                 }
             } else {
@@ -1112,6 +1153,7 @@ public class HostConfig implements LifecycleListener {
             addGlobalRedeployResources(deployedApp);
         }
 
+        //将部署app放入部署map
         deployed.put(cn.getName(), deployedApp);
 
         if( log.isInfoEnabled() ) {
@@ -1133,10 +1175,10 @@ public class HostConfig implements LifecycleListener {
 
 
     /**
-     * Add watched resources to the specified Context.
-     * @param app HostConfig deployed app
-     * @param docBase web app docBase
-     * @param context web application context
+     * 添加到监听的资源
+     * @param app 部署的应用对象
+     * @param docBase 基本目录
+     * @param context StandardContext对象
      */
     protected void addWatchedResources(DeployedApplication app, String docBase, Context context) {
         // FIXME: Feature idea. Add support for patterns (ex: WEB-INF/*,
@@ -1144,13 +1186,17 @@ public class HostConfig implements LifecycleListener {
         //        resource is newer than app.timestamp
         File docBaseFile = null;
         if (docBase != null) {
+            //获取catalina-home/webapps/docs目录
             docBaseFile = new File(docBase);
             if (!docBaseFile.isAbsolute()) {
                 docBaseFile = new File(host.getAppBaseFile(), docBase);
             }
         }
+
+        //获取监控的资源数组 WEB-INF/web.xml  ${catalina.base}/conf/web.xml
         String[] watchedResources = context.findWatchedResources();
-        for (String watchedResource : watchedResources) {
+        for (String watchedResource : watchedResources) {//遍历监控的资源文件数组
+            //实例化一个资源对象
             File resource = new File(watchedResource);
             if (!resource.isAbsolute()) {
                 if (docBase != null) {
@@ -1480,7 +1526,7 @@ public class HostConfig implements LifecycleListener {
 
 
     /**
-     * Process a "start" event for this Host.
+     * 启动HostConfig对象
      */
     public void start() {
 
@@ -1488,23 +1534,26 @@ public class HostConfig implements LifecycleListener {
             log.debug(sm.getString("hostConfig.start"));
 
         try {
+            //获取StandardHost对象存储到MBeanServer仓库的索引名 Catalina:type=Host
             ObjectName hostON = host.getObjectName();
+            //HostConfig对象包装为动态的MBean对象 存储到MBeanServer仓库的索引名 Catalina:type=Deployer,host=localhost
             oname = new ObjectName
                 (hostON.getDomain() + ":type=Deployer,host=" + host.getName());
+            //将HostConfig对象包装为动态的MBean对象 存储到MBeanServer仓库
             Registry.getRegistry(null, null).registerComponent
                 (this, oname, this.getClass().getName());
         } catch (Exception e) {
             log.warn(sm.getString("hostConfig.jmx.register", oname), e);
         }
 
-        if (!host.getAppBaseFile().isDirectory()) {
+        if (!host.getAppBaseFile().isDirectory()) {//不是文件夹
             log.error(sm.getString("hostConfig.appBase", host.getName(),
                     host.getAppBaseFile().getPath()));
             host.setDeployOnStartup(false);
             host.setAutoDeploy(false);
         }
 
-        if (host.getDeployOnStartup()) {
+        if (host.getDeployOnStartup()) {//部署主机
             deployApps();
         }
     }
@@ -1690,33 +1739,32 @@ public class HostConfig implements LifecycleListener {
 
 
     /**
-     * This class represents the state of a deployed application, as well as
-     * the monitored resources.
+     * 部署应用类
      */
     protected static class DeployedApplication {
+
+        /**
+         * 实例化一个部署应用对象
+         * @param name 文件名 相对路径 比如 /docs
+         * @param hasDescriptor  是否有文件
+         */
         public DeployedApplication(String name, boolean hasDescriptor) {
             this.name = name;
             this.hasDescriptor = hasDescriptor;
         }
 
         /**
-         * Application context path. The assertion is that
-         * (host.getChild(name) != null).
+         * 文件名 比如/docs
          */
         public final String name;
 
         /**
-         * Does this application have a context.xml descriptor file on the
-         * host's configBase?
+         * 是否存在 比如catalina-home/webapps/docs文件存在为true
          */
         public final boolean hasDescriptor;
 
         /**
-         * Any modification of the specified (static) resources will cause a
-         * redeployment of the application. If any of the specified resources is
-         * removed, the application will be undeployed. Typically, this will
-         * contain resources like the context.xml file, a compressed WAR path.
-         * The value is the last modification time.
+         * 重新部署资源列表 比如catalina-home/webapps/docs.war | 0
          */
         public final LinkedHashMap<String, Long> redeployResources =
                 new LinkedHashMap<>();
@@ -1746,8 +1794,19 @@ public class HostConfig implements LifecycleListener {
 
     private static class DeployDescriptor implements Runnable {
 
+        /**
+         * 主机配置
+         */
         private HostConfig config;
+
+        /**
+         * 文件名包装对象
+         */
         private ContextName cn;
+
+        /**
+         * 文件对象
+         */
         private File descriptor;
 
         public DeployDescriptor(HostConfig config, ContextName cn,
@@ -1781,12 +1840,32 @@ public class HostConfig implements LifecycleListener {
         }
     }
 
+    /**
+     * 部署文件夹类
+     */
     private static class DeployDirectory implements Runnable {
 
+        /**
+         * 主机配置对象
+         */
         private HostConfig config;
+
+        /**
+         * 文件的文件名上下文对象  cn[basenam:docs,path:/docs,name:/path]
+         */
         private ContextName cn;
+
+        /**
+         * 文件对象  catalina-home/webapps/docs
+         */
         private File dir;
 
+        /**
+         * 实例化一个部署文件夹类
+         * @param config hostconfig对象
+         * @param cn 文件名上下文对象  比如[basename:docs,path:/docs,name:/path]
+         * @param dir 文件 catalina-home/webapps/docs
+         */
         public DeployDirectory(HostConfig config, ContextName cn, File dir) {
             this.config = config;
             this.cn = cn;

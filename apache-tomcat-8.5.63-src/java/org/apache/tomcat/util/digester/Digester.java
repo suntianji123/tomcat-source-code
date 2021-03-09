@@ -1464,19 +1464,22 @@ public class Digester extends DefaultHandler2 {
     // ------------------------------------------------------- Public Methods
 
     /**
-     * Parse the content of the specified file using this Digester.  Returns
-     * the root element from the object stack (if any).
-     *
-     * @param file File containing the XML data to be parsed
-     * @return the root object
-     * @exception IOException if an input/output error occurs
-     * @exception SAXException if a parsing exception occurs
+     * 解析xml获取文件 比如解析catalina-home/webapps/docs/META-INF/context.xml
+     * @param file xml文件
+     * @return
+     * @throws IOException
+     * @throws SAXException
      */
     public Object parse(File file) throws IOException, SAXException {
+        //检查配置
         configure();
+        //如果xml文件输入流
         InputSource input = new InputSource(new FileInputStream(file));
+        //设置系统id
         input.setSystemId("file://" + file.getAbsolutePath());
+        ///解析文件
         getXMLReader().parse(input);
+        //返回root对象
         return root;
     }
 
@@ -1807,15 +1810,7 @@ public class Digester extends DefaultHandler2 {
 
 
     /**
-     * <p>
-     * Provide a hook for lazy configuration of this <code>Digester</code>
-     * instance.  The default implementation does nothing, but subclasses
-     * can override as needed.
-     * </p>
-     *
-     * <p>
-     * <strong>Note</strong> This method may be called more than once.
-     * </p>
+     * 配置
      */
     protected void configure() {
 

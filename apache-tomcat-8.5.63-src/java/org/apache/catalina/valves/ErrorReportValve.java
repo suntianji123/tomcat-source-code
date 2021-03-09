@@ -35,18 +35,7 @@ import org.apache.tomcat.util.res.StringManager;
 import org.apache.tomcat.util.security.Escape;
 
 /**
- * <p>Implementation of a Valve that outputs HTML error pages.</p>
- *
- * <p>This Valve should be attached at the Host level, although it will work
- * if attached to a Context.</p>
- *
- * <p>HTML code from the Cocoon 2 project.</p>
- *
- * @author Remy Maucherat
- * @author Craig R. McClanahan
- * @author <a href="mailto:nicolaken@supereva.it">Nicola Ken Barozzi</a> Aisa
- * @author <a href="mailto:stefano@apache.org">Stefano Mazzocchi</a>
- * @author Yoav Shapira
+ * 报告错误的阀门类
  */
 public class ErrorReportValve extends ValveBase {
 

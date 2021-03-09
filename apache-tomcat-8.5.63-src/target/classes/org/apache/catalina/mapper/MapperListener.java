@@ -87,25 +87,34 @@ public class MapperListener extends LifecycleMBeanBase
 
     // ------------------------------------------------------- Lifecycle Methods
 
+    /**
+     * 启动文件监听器
+     * @throws LifecycleException
+     */
     @Override
     public void startInternal() throws LifecycleException {
 
+        //设置状态为启动中
         setState(LifecycleState.STARTING);
 
+        //获取引擎对象
         Engine engine = service.getContainer();
-        if (engine == null) {
+        if (engine == null) {//引擎对象为null  直接返回
             return;
         }
 
+        //设置默认的主机名 localhost
         findDefaultHost();
 
+        //添加监听器
         addListeners(engine);
 
         Container[] conHosts = engine.findChildren();
-        for (Container conHost : conHosts) {
+        for (Container conHost : conHosts) {//遍历StandardEnginer下所有的StandardHost对象
+            //获取host对象
             Host host = (Host) conHost;
-            if (!LifecycleState.NEW.equals(host.getState())) {
-                // Registering the host will register the context and wrappers
+            if (!LifecycleState.NEW.equals(host.getState())) {//StandardHost的状态为已经启动
+                // 注册主机
                 registerHost(host);
             }
         }
@@ -259,19 +268,26 @@ public class MapperListener extends LifecycleMBeanBase
 
     // ------------------------------------------------------ Protected Methods
 
+    /**
+     * 查找默认的主机
+     */
     private void findDefaultHost() {
-
+        //获取引擎对象
         Engine engine = service.getContainer();
+        //获取默认的主机地址 localhost
         String defaultHost = engine.getDefaultHost();
 
+        //是否找到默认的默认主机地址
         boolean found = false;
 
-        if (defaultHost != null && defaultHost.length() > 0) {
+        if (defaultHost != null && defaultHost.length() > 0) {//默认的主机地址存在
+            //查找所有子容器  StandardHost对象
             Container[] containers = engine.findChildren();
 
-            for (Container container : containers) {
+            for (Container container : containers) {//遍历子容器对象
+                //获取当前子容器
                 Host host = (Host) container;
-                if (defaultHost.equalsIgnoreCase(host.getName())) {
+                if (defaultHost.equalsIgnoreCase(host.getName())) {//如果找到了  设置为true
                     found = true;
                     break;
                 }
@@ -287,6 +303,7 @@ public class MapperListener extends LifecycleMBeanBase
         }
 
         if (found) {
+            //设置默认的主机名 locahost
             mapper.setDefaultHostName(defaultHost);
         } else {
             log.error(sm.getString("mapperListener.unknownDefaultHost", defaultHost, service));
@@ -295,15 +312,20 @@ public class MapperListener extends LifecycleMBeanBase
 
 
     /**
-     * Register host.
+     * 注册主机
+     * @param host 主机对象
      */
     private void registerHost(Host host) {
 
+        //别名列表为null
         String[] aliases = host.findAliases();
+        //根据localhost 和 standardHost实例化一个mappedHost对象 添加mappedListeners的hosts数组
         mapper.addHost(host.getName(), aliases, host);
 
+        //遍历StandardHost下所有的StandardContext对象
         for (Container container : host.findChildren()) {
             if (container.getState().isAvailable()) {
+                //注册StandardContext
                 registerContext((Context) container);
             }
         }
@@ -366,16 +388,20 @@ public class MapperListener extends LifecycleMBeanBase
 
 
     /**
-     * Register context.
+     * 注册StandardContext对象
      */
     private void registerContext(Context context) {
 
+        //获取contextPath ""
         String contextPath = context.getPath();
         if ("/".equals(contextPath)) {
             contextPath = "";
         }
+
+        //获取StandardHost对象
         Host host = (Host)context.getParent();
 
+        //获取webResourceRoot对象
         WebResourceRoot resources = context.getResources();
         String[] welcomeFiles = context.findWelcomeFiles();
         List<WrapperMappingInfo> wrappers = new ArrayList<>();
@@ -510,14 +536,16 @@ public class MapperListener extends LifecycleMBeanBase
 
 
     /**
-     * Add this mapper to the container and all child containers
-     *
-     * @param container
+     * 添加监听器
+     * @param container 容器对象
      */
     private void addListeners(Container container) {
+        //添加容器监听器
         container.addContainerListener(this);
+        //添加生命周期监听器
         container.addLifecycleListener(this);
-        for (Container child : container.findChildren()) {
+        for (Container child : container.findChildren()) {//查找所有的子容器
+            //添加子容器监听器
             addListeners(child);
         }
     }

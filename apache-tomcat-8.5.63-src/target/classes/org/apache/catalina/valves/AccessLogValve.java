@@ -57,8 +57,7 @@ public class AccessLogValve extends AbstractAccessLogValve {
 
 
     /**
-     * The as-of date for the currently open log file, or a zero-length
-     * string if there is no open log file.
+     * 日期格式化后的时间戳 比如.2021-03-08
      */
     private volatile String dateStamp = "";
 
@@ -99,7 +98,7 @@ public class AccessLogValve extends AbstractAccessLogValve {
 
 
     /**
-     * The PrintWriter to which we are currently logging, if any.
+     * 向当前日志文件写入字节的对象
      */
     protected PrintWriter writer = null;
 
@@ -112,8 +111,7 @@ public class AccessLogValve extends AbstractAccessLogValve {
 
 
     /**
-     * The current log file we are writing to. Helpful when checkExists
-     * is true.
+     * 当前日志文件对象 catalina-home/logs/access_logs.2021-03-08.txt
      */
     protected File currentLogFile = null;
 
@@ -129,7 +127,7 @@ public class AccessLogValve extends AbstractAccessLogValve {
     private boolean checkExists = false;
 
     /**
-     * Date format to place in log file name.
+     * 文件日志序序列化字符串
      */
     protected String fileDateFormat = ".yyyy-MM-dd";
 
@@ -145,6 +143,10 @@ public class AccessLogValve extends AbstractAccessLogValve {
      * removed.
      */
     private int maxDays = -1;
+
+    /**
+     * 默认为true
+     */
     private volatile boolean checkForOldLogs = false;
 
     // ------------------------------------------------------------- Properties
@@ -465,9 +467,15 @@ public class AccessLogValve extends AbstractAccessLogValve {
     // -------------------------------------------------------- Private Methods
 
 
+    /**
+     * 获取日志文件夹 catalina-home/logs/access_logs.2021-03-08.txt
+     * @return
+     */
     private File getDirectoryFile() {
+        //logs文件夹
         File dir = new File(directory);
-        if (!dir.isAbsolute()) {
+        if (!dir.isAbsolute()) {//不是绝对路径
+            //文件夹路径 catalina-home/home
             dir = new File(getContainer().getCatalinaBase(), directory);
         }
         return dir;
@@ -475,32 +483,34 @@ public class AccessLogValve extends AbstractAccessLogValve {
 
 
     /**
-     * Create a File object based on the current log file name.
-     * Directories are created as needed but the underlying file
-     * is not created or opened.
-     *
-     * @param useDateStamp include the timestamp in the file name.
-     * @return the log file object
+     * 获取日志文件
+     * @param useDateStamp 是否使用日期戳
+     * @return
      */
     private File getLogFile(boolean useDateStamp) {
-        // Create the directory if necessary
+        // 获取catalina-home/logs文件夹
         File dir = getDirectoryFile();
-        if (!dir.mkdirs() && !dir.isDirectory()) {
+        if (!dir.mkdirs() && !dir.isDirectory()) {//文件夹不存在 抛出异常
             log.error(sm.getString("accessLogValve.openDirFail", dir));
         }
 
         // Calculate the current log file name
         File pathname;
-        if (useDateStamp) {
+        if (useDateStamp) {//使用日志时间戳
+            //文件路径 catalina-home/logs/access_logs.2021-03-08.txt
             pathname = new File(dir.getAbsoluteFile(), prefix + dateStamp
                     + suffix);
         } else {
             pathname = new File(dir.getAbsoluteFile(), prefix + suffix);
         }
+
+        //父目录 catalina-home/logs
         File parent = pathname.getParentFile();
         if (!parent.mkdirs() && !parent.isDirectory()) {
             log.error(sm.getString("accessLogValve.openDirFail", parent));
         }
+
+        // catalina-home/logs/access_logs.2021-03-08.txt
         return pathname;
     }
 
@@ -608,13 +618,14 @@ public class AccessLogValve extends AbstractAccessLogValve {
 
 
     /**
-     * Open the new log file for the date specified by <code>dateStamp</code>.
+     * 打开访问日志阀门对象
      */
     protected synchronized void open() {
         // Open the current log file
-        // If no rotate - no need for dateStamp in fileName
+        //获取当前日志文件路径：catalina-home/logs/access_logs.2021-03-08.txt
         File pathname = getLogFile(rotatable && !renameOnRotate);
 
+        //字符集
         Charset charset = null;
         if (encoding != null) {
             try {
@@ -625,14 +636,17 @@ public class AccessLogValve extends AbstractAccessLogValve {
             }
         }
         if (charset == null) {
+            //使用ISO_8859_1字符集
             charset = StandardCharsets.ISO_8859_1;
         }
 
         try {
+            //获取向日志文件中写入字节对象
             writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(
                     new FileOutputStream(pathname, true), charset), 128000),
                     false);
 
+            //当前日志文件
             currentLogFile = pathname;
         } catch (IOException e) {
             writer = null;
@@ -646,23 +660,25 @@ public class AccessLogValve extends AbstractAccessLogValve {
     }
 
     /**
-     * Start this component and implement the requirements
-     * of {@link org.apache.catalina.util.LifecycleBase#startInternal()}.
-     *
-     * @exception LifecycleException if this component detects a fatal error
-     *  that prevents this component from being used
+     * 启动访问日志阀门对象
+     * @throws LifecycleException
      */
     @Override
     protected synchronized void startInternal() throws LifecycleException {
 
-        // Initialize the Date formatters
+        //获取文件日期序列化格式
         String format = getFileDateFormat();
+        //获取序列化对象
         fileDateFormatter = new SimpleDateFormat(format, Locale.US);
+        //设置时间起点
         fileDateFormatter.setTimeZone(TimeZone.getDefault());
+        //序列化当前时间 .2021-03-08
         dateStamp = fileDateFormatter.format(new Date(System.currentTimeMillis()));
         if (rotatable && renameOnRotate) {
             restore();
         }
+
+        //打开阀门
         open();
 
         super.startInternal();

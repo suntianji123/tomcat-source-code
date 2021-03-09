@@ -28,6 +28,10 @@ public final class Constants {
 
     public static final String ApplicationContextXml = "META-INF/context.xml";
     public static final String ApplicationWebXml = "/WEB-INF/web.xml";
+
+    /**
+     * StandardContext对象 配置xml文件
+     */
     public static final String DefaultContextXml = "conf/context.xml";
     public static final String DefaultWebXml = "conf/web.xml";
     public static final String HostContextXml = "context.xml.default";

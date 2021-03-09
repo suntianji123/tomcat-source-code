@@ -52,22 +52,19 @@ import org.apache.tomcat.util.ExceptionUtils;
 
 
 /**
- * Facade object which masks the internal <code>ApplicationContext</code>
- * object from the web application.
- *
- * @author Remy Maucherat
+ * 正面的ServerContext对象
  */
 public class ApplicationContextFacade implements ServletContext {
 
     // ---------------------------------------------------------- Attributes
     /**
-     * Cache Class object used for reflection.
+     * class类缓存
      */
     private final Map<String,Class<?>[]> classCache;
 
 
     /**
-     * Cache method object.
+     * 方法缓存
      */
     private final Map<String,Method> objectCache;
 
@@ -76,22 +73,27 @@ public class ApplicationContextFacade implements ServletContext {
 
 
     /**
-     * Construct a new instance of this class, associated with the specified
-     * Context instance.
-     *
-     * @param context The associated Context instance
+     * 实例化一个ServletContext对象
+     * @param context 应用上下文对象
      */
     public ApplicationContextFacade(ApplicationContext context) {
         super();
         this.context = context;
 
+        //class类缓存
         classCache = new HashMap<>();
+        //方法缓存
         objectCache = new ConcurrentHashMap<>();
+        //初始化类缓存
         initClassCache();
     }
 
 
+    /**
+     * 初始化类缓存
+     */
     private void initClassCache(){
+        //实例化一个class数组 包含一个String类型
         Class<?>[] clazz = new Class[]{String.class};
         classCache.put("getContext", clazz);
         classCache.put("getMimeType", clazz);
@@ -129,7 +131,7 @@ public class ApplicationContextFacade implements ServletContext {
 
 
     /**
-     * Wrapped application context.
+     * 应用上下文对象
      */
     private final ApplicationContext context;
 

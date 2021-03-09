@@ -222,6 +222,10 @@ public abstract class ContainerBase extends LifecycleMBeanBase
      * children associated with this container.
      */
     private int startStopThreads = 1;
+
+    /**
+     * 容器的启动 停止任务执行器
+     */
     protected ThreadPoolExecutor startStopExecutor;
 
 
@@ -679,6 +683,7 @@ public abstract class ContainerBase extends LifecycleMBeanBase
             if ((getState().isAvailable() ||
                     LifecycleState.STARTING_PREP.equals(getState())) &&
                     startChildren) {
+                //启动子容器  比如启动StandardContext对象
                 child.start();
             }
         } catch (LifecycleException e) {
@@ -691,9 +696,8 @@ public abstract class ContainerBase extends LifecycleMBeanBase
 
 
     /**
-     * Add a container event listener to this component.
-     *
-     * @param listener The listener to add
+     * 容器监听器
+     * @param listener 监听器对象
      */
     @Override
     public void addContainerListener(ContainerListener listener) {
@@ -857,10 +861,11 @@ public abstract class ContainerBase extends LifecycleMBeanBase
             ((Lifecycle) realm).start();
         }
 
-        // Start our child containers, if any
+        // 获取所有的额子容器对象  StandardHost对象
         Container children[] = findChildren();
+        //异步操作列表
         List<Future<Void>> results = new ArrayList<>();
-        for (Container child : children) {
+        for (Container child : children) {//遍历每一个子容器对象 向启动停止执行器中添加一个启动子容器的方法
             results.add(startStopExecutor.submit(new StartChild(child)));
         }
 
@@ -868,6 +873,7 @@ public abstract class ContainerBase extends LifecycleMBeanBase
 
         for (Future<Void> result : results) {
             try {
+                //等待 任务子容器启动完成
                 result.get();
             } catch (Throwable e) {
                 log.error(sm.getString("containerBase.threadedStartFailed"), e);
@@ -883,12 +889,12 @@ public abstract class ContainerBase extends LifecycleMBeanBase
                     multiThrowable.getThrowable());
         }
 
-        // Start the Valves in our pipeline (including the basic), if any
+        //启动管道对象  启动管道中所有的阀门对象
         if (pipeline instanceof Lifecycle) {
             ((Lifecycle) pipeline).start();
         }
 
-
+        //设置状态启动中
         setState(LifecycleState.STARTING);
 
         // Start our thread
@@ -1087,6 +1093,10 @@ public abstract class ContainerBase extends LifecycleMBeanBase
     }
 
 
+    /**
+     * 获取catalina-home文件夹路径
+     * @return
+     */
     @Override
     public File getCatalinaBase() {
 
@@ -1198,14 +1208,13 @@ public abstract class ContainerBase extends LifecycleMBeanBase
     // -------------------- Background Thread --------------------
 
     /**
-     * Start the background thread that will periodically check for
-     * session timeouts.
+     * 启动线程
      */
     protected void threadStart() {
 
         if (thread != null)
             return;
-        if (backgroundProcessorDelay <= 0)
+        if (backgroundProcessorDelay <= 0)//小于0 直接返回
             return;
 
         threadDone = false;
@@ -1326,8 +1335,14 @@ public abstract class ContainerBase extends LifecycleMBeanBase
 
     // ---------------------------- Inner classes used with start/stop Executor
 
+    /**
+     * 启动子容器的任务体
+     */
     private static class StartChild implements Callable<Void> {
 
+        /**
+         * 子容器对象 比如StandardHost对象
+         */
         private Container child;
 
         public StartChild(Container child) {

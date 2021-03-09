@@ -25,6 +25,9 @@ import org.apache.catalina.LifecycleState;
 import org.apache.catalina.util.SessionConfig;
 import org.apache.tomcat.util.res.StringManager;
 
+/**
+ * 应用SesssionCookieConfig配置类
+ */
 public class ApplicationSessionCookieConfig implements SessionCookieConfig {
 
     /**
@@ -42,6 +45,10 @@ public class ApplicationSessionCookieConfig implements SessionCookieConfig {
     private String path;
     private StandardContext context;
 
+    /**
+     * 实例化一个应用SessionCookieConfig配置对象
+     * @param context StandardContext对象
+     */
     public ApplicationSessionCookieConfig(StandardContext context) {
         this.context = context;
     }

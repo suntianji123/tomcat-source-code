@@ -147,26 +147,25 @@ public class StandardPipeline extends LifecycleBase
 
 
     /**
-     * Start {@link Valve}s) in this pipeline and implement the requirements
-     * of {@link LifecycleBase#startInternal()}.
-     *
-     * @exception LifecycleException if this component detects a fatal error
-     *  that prevents this component from being used
+     * 启动standardHost下的管道
+     * @throws LifecycleException
      */
     @Override
     protected synchronized void startInternal() throws LifecycleException {
 
-        // Start the Valves in our pipeline (including the basic), if any
+        //当前阀门对象
         Valve current = first;
-        if (current == null) {
+        if (current == null) {//如果不存在第一个阀门对象  当前阀门对象为基本阀门对象
             current = basic;
         }
-        while (current != null) {
+        while (current != null) {//遍历阀门链表中所有的阀门对象  启动
             if (current instanceof Lifecycle)
+            //启动阀门对象
                 ((Lifecycle) current).start();
             current = current.getNext();
         }
 
+        //设置状态为启动中
         setState(LifecycleState.STARTING);
     }
 

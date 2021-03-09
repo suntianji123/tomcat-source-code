@@ -434,12 +434,13 @@ public class StandardService extends LifecycleMBeanBase implements Service {
             }
         }
 
-        synchronized (executors) {
+        synchronized (executors) {//启动所有的执行器
             for (Executor executor: executors) {
                 executor.start();
             }
         }
 
+        //启动文件匹配器
         mapperListener.start();
 
         // Start our defined Connectors second

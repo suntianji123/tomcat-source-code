@@ -154,12 +154,15 @@ public class StandardContext extends ContainerBase
 
 
     /**
-     * Create a new StandardContext component with the default basic Valve.
+     * 实例化一个StandardContext对象
      */
     public StandardContext() {
 
         super();
+        //设置管道的基本阀门为StandardContextValve阀门
         pipeline.setBasic(new StandardContextValve());
+
+        //广播器
         broadcaster = new NotificationBroadcasterSupport();
         // Set defaults
         if (!Globals.STRICT_SERVLET_COMPLIANCE) {
@@ -270,7 +273,7 @@ public class StandardContext extends ContainerBase
 
 
     /**
-     * The URL of the XML descriptor for this context.
+     * 配置文件路径 比如catalina-home/webapps/docs/META-INF/context.xml
      */
     private URL configFile = null;
 
@@ -304,7 +307,7 @@ public class StandardContext extends ContainerBase
 
 
     /**
-     * Should we attempt to use cookies for session id communication?
+     * 允许设置cookie
      */
     private boolean cookies = true;
 
@@ -484,7 +487,7 @@ public class StandardContext extends ContainerBase
 
 
     /**
-     * The default context override flag for this web application.
+     * 是否需要覆盖
      */
     private boolean override = false;
 
@@ -560,10 +563,13 @@ public class StandardContext extends ContainerBase
 
 
     /**
-     * The watched resources for this application.
+     * 监控的资源数组 解析catalina-home/conf/context.xml获取的数组 两个元素 WEB-INF/web.xml  catalina-home/conf/web.xml
      */
     private String watchedResources[] = new String[0];
 
+    /**
+     * 访问监控资源数组的锁
+     */
     private final Object watchedResourcesLock = new Object();
 
 
@@ -592,8 +598,7 @@ public class StandardContext extends ContainerBase
     private final Object wrapperListenersLock = new Object();
 
     /**
-     * The pathname to the work directory for this context (relative to
-     * the server's home if not absolute).
+     * 工作目录 例如work\Catalina\localhost\docs
      */
     private String workDir = null;
 
@@ -617,7 +622,14 @@ public class StandardContext extends ContainerBase
     private String namingContextName = null;
 
 
+    /**
+     * webResourceRoot对象
+     */
     private WebResourceRoot resources;
+
+    /**
+     * 访问webResourceRoot的锁
+     */
     private final ReadWriteLock resourcesLock = new ReentrantReadWriteLock();
 
     private long startupTime;
@@ -769,6 +781,9 @@ public class StandardContext extends ContainerBase
 
     private JspConfigDescriptor jspConfigDescriptor = null;
 
+    /**
+     * 资源仅Servlet的set表
+     */
     private Set<String> resourceOnlyServlets = new HashSet<>();
 
     private String webappVersion = "";
@@ -1121,6 +1136,7 @@ public class StandardContext extends ContainerBase
     }
 
 
+
     @Override
     public boolean isResourceOnlyServlet(String servletName) {
         return resourceOnlyServlets.contains(servletName);
@@ -1471,10 +1487,7 @@ public class StandardContext extends ContainerBase
 
 
     /**
-     * Set the "correctly configured" flag for this Context.  This can be
-     * set to false by startup listeners that detect a fatal configuration
-     * error to avoid the application from being made available.
-     *
+     * 下发配置改变事件
      * @param configured The new correctly configured flag
      */
     @Override
@@ -2282,15 +2295,19 @@ public class StandardContext extends ContainerBase
 
 
     /**
-     * @return the servlet context for which this Context is a facade.
+     * 获取ServerletContext对象
+     * @return
      */
     @Override
     public ServletContext getServletContext() {
         if (context == null) {
+            //实例化应用上下文对象
             context = new ApplicationContext(this);
             if (altDDName != null)
                 context.setAttribute(Globals.ALT_DD_ATTR,altDDName);
         }
+
+        //返回正面的ServletContext对象
         return context.getFacade();
     }
 
@@ -2461,45 +2478,65 @@ public class StandardContext extends ContainerBase
     }
 
 
+    /**
+     * 获取WebResourceRoot对象
+     * @return
+     */
     @Override
     public WebResourceRoot getResources() {
+        //打开访问WebResourceRoot的锁
         Lock readLock = resourcesLock.readLock();
+        //加锁
         readLock.lock();
         try {
+            //返回资源对象
             return resources;
         } finally {
+            //关闭锁
             readLock.unlock();
         }
     }
 
 
+    /**
+     * 设置WebResourceRoot
+     * @param resources StandRoot对象
+     */
     @Override
     public void setResources(WebResourceRoot resources) {
 
+        //打开访问WebResourceRoot对象的锁
         Lock writeLock = resourcesLock.writeLock();
+        //打开写锁
         writeLock.lock();
+        //老的WebResourceRoot对象
         WebResourceRoot oldResources = null;
         try {
-            if (getState().isAvailable()) {
+            if (getState().isAvailable()) {//可用
                 throw new IllegalStateException
                     (sm.getString("standardContext.resourcesStart"));
             }
 
+            //设置老的WebResourceRoot对象
             oldResources = this.resources;
-            if (oldResources == resources)
+            if (oldResources == resources)//老的和新的WebResourceRoot是同一个对象 不需要再次设置
                 return;
 
+            //设置WebResourceRoot为新的webResourceRoot对象
             this.resources = resources;
-            if (oldResources != null) {
+            if (oldResources != null) {//老的WebResourceRoot不为null
+                //将老的WebResourceRoot的standardContext对象设置为nulll
                 oldResources.setContext(null);
             }
-            if (resources != null) {
+            if (resources != null){ //将新的webResourceRoot对象的StandardContext对象设置为当前对象
                 resources.setContext(this);
             }
 
+            //下发webResourceRoot变更时间
             support.firePropertyChange("resources", oldResources,
                     resources);
         } finally {
+            //关闭写锁
             writeLock.unlock();
         }
     }
@@ -2604,9 +2641,8 @@ public class StandardContext extends ContainerBase
 
 
     /**
-     * Set the work directory for this Context.
-     *
-     * @param workDir The new work directory
+     * 设置工作目录
+     * @param workDir 工作目录  work\Catalina\localhost\docs
      */
     public void setWorkDir(String workDir) {
 
@@ -3683,8 +3719,8 @@ public class StandardContext extends ContainerBase
 
 
     /**
-     * @return the set of watched resources for this Context. If none are
-     * defined, a zero length array will be returned.
+     * 获取监控的资源数组
+     * @return
      */
     @Override
     public String[] findWatchedResources() {
@@ -4811,14 +4847,15 @@ public class StandardContext extends ContainerBase
 
 
     /**
-     * Allocate resources, including proxy.
-     * @throws LifecycleException if a start error occurs
+     * 启动WebResourceRoot对象
+     * @throws LifecycleException
      */
     public void resourcesStart() throws LifecycleException {
 
         // Check current status in case resources were added that had already
         // been started
-        if (!resources.getState().isAvailable()) {
+        if (!resources.getState().isAvailable()) {//不可用
+            //启动StandardRoot
             resources.start();
         }
 
@@ -4911,11 +4948,8 @@ public class StandardContext extends ContainerBase
 
 
     /**
-     * Start this component and implement the requirements
-     * of {@link org.apache.catalina.util.LifecycleBase#startInternal()}.
-     *
-     * @exception LifecycleException if this component detects a fatal error
-     *  that prevents this component from being used
+     * standardContext启动方法
+     * @throws LifecycleException
      */
     @Override
     protected synchronized void startInternal() throws LifecycleException {
@@ -4923,13 +4957,14 @@ public class StandardContext extends ContainerBase
         if(log.isDebugEnabled())
             log.debug("Starting " + getBaseName());
 
-        // Send j2ee.state.starting notification
+        //发送启动通知
         if (this.getObjectName() != null) {
             Notification notification = new Notification("j2ee.state.starting",
                     this.getObjectName(), sequenceNumber.getAndIncrement());
             broadcaster.sendNotification(notification);
         }
 
+        //设置没有配置
         setConfigured(false);
         boolean ok = true;
 
@@ -4939,7 +4974,7 @@ public class StandardContext extends ContainerBase
             namingResources.start();
         }
 
-        // Post work directory
+        //张贴工作目录 设置工作目录为catalina-home\work\Catalina\localhost\docs
         postWorkDirectory();
 
         // Add missing components as necessary
@@ -4948,6 +4983,7 @@ public class StandardContext extends ContainerBase
                 log.debug("Configuring default Resources");
 
             try {
+                //设置当前StandardContext对象的WebResourceRoot对象
                 setResources(new StandardRoot(this));
             } catch (IllegalArgumentException e) {
                 log.error(sm.getString("standardContext.resourcesInit"), e);
@@ -6037,26 +6073,35 @@ public class StandardContext extends ContainerBase
 
 
     /**
-     * Set the appropriate context attribute for our work directory.
+     * 张贴工作目录
      */
     private void postWorkDirectory() {
 
-        // Acquire (or calculate) the work directory path
+        //获取工作目录
         String workDir = getWorkDir();
         if (workDir == null || workDir.length() == 0) {
 
-            // Retrieve our parent (normally a host) name
+            //主机名 localhost
             String hostName = null;
+            //引擎名 Catalina
             String engineName = null;
+            //主机工作目录 null
             String hostWorkDir = null;
+
+            //父容器 StandardHost对象
             Container parentHost = getParent();
-            if (parentHost != null) {
+            if (parentHost != null) {//获取父容器名字
+                //localhost
                 hostName = parentHost.getName();
-                if (parentHost instanceof StandardHost) {
+                if (parentHost instanceof StandardHost) {//SatandardHost类型
+                    //获取工作目录
                     hostWorkDir = ((StandardHost)parentHost).getWorkDir();
                 }
+
+                //获取StandardEngine对象
                 Container parentEngine = parentHost.getParent();
                 if (parentEngine != null) {
+                    //Catalina
                    engineName = parentEngine.getName();
                 }
             }
@@ -6075,17 +6120,21 @@ public class StandardContext extends ContainerBase
             if (hostWorkDir != null ) {
                 workDir = hostWorkDir + File.separator + temp;
             } else {
+                //workDir = work\Catalina\localhost\docs
                 workDir = "work" + File.separator + engineName +
                     File.separator + hostName + File.separator + temp;
             }
+
+            //设置工作目录
             setWorkDir(workDir);
         }
 
-        // Create this directory if necessary
+        // 创建目录  catalina-home\work\Catalina\localhost\docs
         File dir = new File(workDir);
         if (!dir.isAbsolute()) {
             String catalinaHomePath = null;
             try {
+                //catalina-home
                 catalinaHomePath = getCatalinaBase().getCanonicalPath();
                 dir = new File(catalinaHomePath, workDir);
             } catch (IOException e) {
@@ -6100,9 +6149,14 @@ public class StandardContext extends ContainerBase
 
         // Set the appropriate servlet context attribute
         if (context == null) {
+            //获取正面的ServletContext对象
             getServletContext();
         }
+
+        //设置应用上下文对象的属性
         context.setAttribute(ServletContext.TEMPDIR, dir);
+
+        //设置只读的属性
         context.setAttributeReadOnly(ServletContext.TEMPDIR);
     }
 

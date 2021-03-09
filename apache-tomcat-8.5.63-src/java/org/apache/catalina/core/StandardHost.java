@@ -108,8 +108,7 @@ public class StandardHost extends ContainerBase implements Host {
 
 
     /**
-     * The Java class name of the default context configuration class
-     * for deployed web applications.
+     * 配置ContextConfig的全类名
      */
     private String configClass =
         "org.apache.catalina.startup.ContextConfig";
@@ -124,7 +123,7 @@ public class StandardHost extends ContainerBase implements Host {
 
 
     /**
-     * The deploy on startup flag for this Host.
+     * 主机启动时的部署标志
      */
     private boolean deployOnStartup = true;
 
@@ -683,10 +682,10 @@ public class StandardHost extends ContainerBase implements Host {
 
 
     /**
-     * Add a child Container, only if the proposed child is an implementation
-     * of Context.
+     * 添加解析catalina-home/webapps/子目录/META-INF/context.xml返回的StandardContext对象
+     * 添加子容器对象
+     * @param child 将要被添加的StandardContext对象
      *
-     * @param child Child container to be added
      */
     @Override
     public void addChild(Container child) {
@@ -695,16 +694,20 @@ public class StandardHost extends ContainerBase implements Host {
             throw new IllegalArgumentException
                 (sm.getString("standardHost.notContext"));
 
+        //给子容器添加一个内存泄漏监听器
         child.addLifecycleListener(new MemoryLeakTrackingListener());
 
         // Avoid NPE for case where Context is defined in server.xml with only a
         // docBase
+        //获取Context对象
         Context context = (Context) child;
         if (context.getPath() == null) {
+            //实例化一个上下文名字对象
             ContextName cn = new ContextName(context.getDocBase(), true);
             context.setPath(cn.getPath());
         }
 
+        //添加子容器
         super.addChild(child);
 
     }

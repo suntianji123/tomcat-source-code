@@ -198,7 +198,7 @@ public class CallMethodRule extends Rule {
 
 
     /**
-     * The parameter types of the parameters to be collected.
+     * 参数类型列表 如果paramCount = 0 在默认有一个java.lang.String 类型
      */
     protected Class<?> paramTypes[] = null;
 
@@ -263,14 +263,15 @@ public class CallMethodRule extends Rule {
     }
 
     /**
-     * Process the start of this element.
-     *
+     * 开始解析标签
      * @param namespace the namespace URI of the matching element, or an
-     *   empty string if the parser is not namespace aware or the element has
-     *   no namespace
+     *                  empty string if the parser is not namespace aware or the
+     *                  element has no namespace
      * @param name the local name if the parser is namespace aware, or just
-     *   the element name otherwise
-     * @param attributes The attribute list for this element
+     *             the element name otherwise
+     * @param attributes The attribute list of this element
+     *
+     * @throws Exception
      */
     @Override
     public void begin(String namespace, String name, Attributes attributes)
